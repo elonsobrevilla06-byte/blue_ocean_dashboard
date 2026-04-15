@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Monitoring - Blue Ocean Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen text-gray-800 font-sans overflow-hidden">
+
+    <div id="sidebar-container"></div>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 z-20">
+            <div class="flex items-center">
+                <button id="open-sidebar-btn" class="lg:hidden mr-4 text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3 relative">
+                <button onclick="toggleModal('financial-modal')" class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg> Financial Reports
+                </button>
+                <button onclick="toggleModal('export-modal')" class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export Data
+                </button>
+                <!-- <button onclick="toggleModal('record-modal')" class="px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 flex items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Record Data
+                </button>
+                 -->
+                <button id="profile-btn" class="flex items-center ml-2 focus:outline-none">
+                    <img src="https://lh3.googleusercontent.com/a/ACg8ocIr0M-1_ZpBBsXKEb-6dPS2C-nF8UrhGbrkaT1gsTNAcIQfjC5H=s360-c-no" alt="User" class="w-8 h-8 rounded-full border border-gray-200 object-cover">
+                    <svg class="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+
+                <div id="profile-dropdown" class="hidden absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <p class="text-sm font-medium text-gray-800">Arjunren Von</p>
+                        <p class="text-xs text-gray-500">arjunrenvon@gmail.com</p>
+                    </div>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 mt-1">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 mb-1">Billing</a>
+                    <div class="border-t border-gray-100 mt-1 pt-1">
+                        <button onclick="toggleModal('logout-modal'); document.getElementById('profile-dropdown').classList.add('hidden')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 mb-1">Log out</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+            
+            <div class="flex flex-col md:flex-row md:items-start justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Shift Logs</h1>
+                    <p class="text-gray-500 mt-1">Track and manage cashier shifts and sales performance</p>
+                </div>
+                <div class="flex mt-4 md:mt-0 gap-3">
+                    <button onclick="openEndAllShiftsModal()" class="bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-rose-700 shadow-sm flex items-center transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                        </svg> 
+                        End All Shifts (<span id="header-active-count">0</span>)
+                    </button>
+                    <!-- <button onclick="openStartShiftModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg> 
+                        Start Shift
+                    </button> -->
+                </div>
+            </div>
+
+            <div class="flex justify-center mb-8">
+                <div class="bg-white p-1 rounded-full inline-flex border border-gray-200 shadow-sm">
+                    <button id="toggle-mainland" onclick="switchLocation('mainland')" class="px-6 py-2 rounded-full text-sm font-medium bg-white text-blue-600 shadow-sm flex items-center transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Mainland
+                    </button>
+                    <button id="toggle-floatingbar" onclick="switchLocation('floatingbar')" class="px-6 py-2 rounded-full text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Floating Bar
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-blue-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg></div>
+                        <span class="text-xs text-gray-500 font-medium">Active Cashiers</span>
+                    </div>
+                    <h3 id="kpi-active" class="text-2xl font-bold text-gray-800 mb-1 transition-all"></h3>
+                    <p class="text-xs text-gray-400">Currently on shift</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-green-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <span class="text-xs text-gray-500 font-medium">Total Sales Today</span>
+                    </div>
+                    <h3 id="kpi-sales" class="text-2xl font-bold text-gray-800 mb-1 transition-all"></h3>
+                    <p class="text-xs text-gray-400">From active shifts</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-purple-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
+                        <span class="text-xs text-gray-500 font-medium">Total Transactions</span>
+                    </div>
+                    <h3 id="kpi-txns" class="text-2xl font-bold text-gray-800 mb-1 transition-all"></h3>
+                    <p class="text-xs text-gray-400">Completed today</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-orange-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div>
+                        <span class="text-xs text-gray-500 font-medium">Avg Transaction</span>
+                    </div>
+                    <h3 id="kpi-avg" class="text-2xl font-bold text-gray-800 mb-1 transition-all"></h3>
+                    <p class="text-xs text-gray-400">Per transaction</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="relative w-full md:w-[28rem]">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="search-input" placeholder="Search by cashier name or shift ID..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 w-full transition">
+                </div>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <div class="relative w-full md:w-40">
+                        <select id="status-filter" class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 bg-gray-50/50 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                            <option value="all">All Shifts</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Completed">Completed Only</option>
+                        </select>
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    </div>
+                    <button class="border border-gray-200 bg-white px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 shadow-sm flex items-center justify-center whitespace-nowrap">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800">Shift Records</h3>
+                    <p class="text-sm text-gray-500">View and manage all cashier shifts</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50/50 text-gray-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-4">Shift ID</th>
+                                <th class="px-6 py-4">Cashier</th>
+                                <th class="px-6 py-4">Register</th>
+                                <th class="px-6 py-4">Start Time</th>
+                                <th class="px-6 py-4">End Time</th>
+                                <th class="px-6 py-4">Sales</th>
+                                <th class="px-6 py-4">Transactions</th>
+                                <th class="px-6 py-4">Variance</th>
+                                <th class="px-6 py-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shift-logs-body" class="divide-y divide-gray-100 cursor-pointer">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-end-all-shifts" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md relative flex flex-col max-h-[95vh]">
+            <div class="p-6 overflow-y-auto">
+                <button onclick="toggleModal('modal-end-all-shifts')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <h2 class="text-xl font-bold text-gray-800 mb-1">End All Active Shifts</h2>
+                <p class="text-sm text-gray-500 mb-6">This will end all currently active shifts and automatically reconcile cash</p>
+
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-600 text-sm">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-2 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <p class="font-bold mb-1 text-red-700">Warning</p>
+                            <p>This action will end all <span id="eas-warning-count" class="font-bold">0</span> active shifts at once. Cash will be auto-reconciled with expected amounts (variance = ₱0.00).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-sm font-bold text-gray-700 mb-3">Cashiers Currently on Shift (<span id="eas-list-count">0</span>)</p>
+                
+                <div id="eas-cashiers-list" class="space-y-3 mb-6 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                    </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start mb-6">
+                    <svg class="w-5 h-5 text-blue-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <p class="text-sm font-medium text-blue-800">End Time</p>
+                        <p class="text-sm text-blue-600" id="eas-end-time"></p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button onclick="toggleModal('modal-end-all-shifts')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition">Cancel</button>
+                    <button onclick="confirmEndAllShifts()"  class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 flex items-center focus:outline-none transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg> 
+                        End All Shifts
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-start-shift" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('modal-start-shift')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Start New Shift</h2>
+            <p class="text-sm text-gray-500 mb-6">Log in and start your sales shift</p>
+            
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cashier <span class="text-red-500">*</span></label>
+                    <select class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-500 bg-gray-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                        <option value="" disabled selected>Select cashier</option>
+                        <option>Lucille Marfa (CSH-001)</option>
+                        <option>Jarek Melgar (CSH-002)</option>
+                        <option>Vlad Navarro (CSH-003)</option>
+                        <option>Dylan Ray Cairo (CSH-004)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Register <span class="text-red-500">*</span></label>
+                    <select class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-500 bg-gray-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                        <option value="" disabled selected>Select register</option>
+                        <option>Mainland - Main Counter</option>
+                        <option>Floating Bar</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Starting Float (₱) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="number" step="0.01" value="5000.00" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-gray-50/50">
+                        <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center pr-2">
+                            <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                            <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Initial cash amount in the register</p>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start mt-4">
+                    <svg class="w-5 h-5 text-blue-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <p class="text-sm font-medium text-blue-800">Shift Start Time</p>
+                        <p class="text-sm text-blue-600" id="dynamic-start-time">March 31, 2026 at 10:58 AM</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
+                    <button type="button" onclick="toggleModal('modal-start-shift')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center focus:outline-none transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Start Shift
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-shift-report" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity p-4 sm:p-6">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg relative flex flex-col max-h-[95vh] overflow-hidden">
+            
+            <div class="p-4 sm:p-6 border-b border-gray-100 shrink-0 flex justify-between items-start">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-800 mb-1">Shift Performance Report</h2>
+                    <p class="text-xs sm:text-sm text-gray-500">Detailed shift summary and performance metrics</p>
+                </div>
+                <button onclick="toggleModal('modal-shift-report')" class="text-gray-400 hover:text-gray-600 focus:outline-none ml-4 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-gray-500 mb-1">Shift ID</p>
+                        <p class="font-bold text-gray-800 text-sm" id="sr-shift-id"></p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-gray-500 mb-1">Status</p>
+                        <div id="sr-status"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6">
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-gray-500 mb-1">Cashier</p>
+                        <p class="font-bold text-gray-800 text-sm" id="sr-cashier-name"></p>
+                        <p class="text-[10px] sm:text-xs text-gray-400" id="sr-cashier-id"></p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-gray-500 mb-1">Register</p>
+                        <p class="font-bold text-gray-800 text-sm" id="sr-register-name"></p>
+                        <p class="text-[10px] sm:text-xs text-gray-400" id="sr-register-loc"></p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 border border-gray-100">
+                    <p class="text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3">Time Tracking</p>
+                    <div class="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-gray-500 mb-1">Start Time</p>
+                            <p class="text-gray-800" id="sr-start-time"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-gray-500 mb-1">End Time</p>
+                            <p id="sr-end-time"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-50/30 border border-green-200 rounded-lg p-3 sm:p-4 mb-5 sm:mb-6">
+                    <p class="text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 text-green-800">Financial Performance</p>
+                    <div class="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-green-700">
+                        <div class="flex justify-between"><span>Starting Float</span><span class="font-medium">₱5,000.00</span></div>
+                        <div class="flex justify-between"><span>Total Sales</span><span class="font-medium" id="sr-sales"></span></div>
+                        <div class="flex justify-between"><span>Total Transactions</span><span class="font-medium" id="sr-txns"></span></div>
+                        <div class="flex justify-between pb-2 border-b border-green-200"><span>Avg Transaction Value</span><span class="font-medium" id="sr-avg"></span></div>
+                        <div class="flex justify-between pt-1 items-center"><span class="font-medium">Expected Cash</span><span class="font-bold text-green-800 text-sm sm:text-base" id="sr-expected"></span></div>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <div class="flex items-center text-gray-600 mb-2 sm:mb-3">
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="text-xs sm:text-sm font-bold">Shift Notes (1)</span>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5 sm:p-3 text-xs sm:text-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="bg-white border border-gray-200 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded text-[10px] sm:text-xs font-medium text-gray-600 flex items-center">
+                                <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Void
+                            </span>
+                            <span class="text-[10px] sm:text-xs text-gray-400">2026-03-20 10:30:00</span>
+                        </div>
+                        <p class="text-gray-700 mt-1 sm:mt-2">Voided transaction #1234 - customer changed order</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-6 border-t border-gray-100 shrink-0 bg-white">
+                <div class="flex gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <button onclick="openAddNote()" class="flex-1 py-1.5 sm:py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center transition">
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Add Note
+                    </button>
+                    <button onclick="openEndShift()" class="flex-1 py-1.5 sm:py-2 bg-rose-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-rose-700 flex items-center justify-center transition">
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> End Shift
+                    </button>
+                </div>
+                <button onclick="toggleModal('modal-save-print')" class="w-full py-1.5 sm:py-2 bg-[#0b1120] text-white rounded-lg text-xs sm:text-sm font-medium flex items-center justify-center hover:bg-gray-800 transition">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-save-print" class="fixed inset-0 z-[80] hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm relative flex flex-col p-6 text-center">
+            <button onclick="toggleModal('modal-save-print')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-lg font-bold text-gray-800 mb-2">Export Report</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose how you want to export this shift report.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="executeExport('Save as PDF')" class="w-full py-2 bg-[#0b1120] text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save as PDF</button>
+                <button onclick="executeExport('Print')" class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Print Report</button>
+                <button onclick="toggleModal('modal-save-print')" class="w-full py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-add-note" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm relative flex flex-col max-h-[95vh]">
+            <div class="p-6 overflow-y-auto">
+                <button onclick="toggleModal('modal-add-note'); toggleModal('modal-shift-report')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <h2 class="text-xl font-bold text-gray-800 mb-1">Add Shift Note</h2>
+                <p class="text-sm text-gray-500 mb-6">Record incidents, voids, refunds, or other important notes</p>
+                
+                <form class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Note Type <span class="text-red-500">*</span></label>
+                        <select class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-gray-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                            <option>Other</option>
+                            <option>Void</option>
+                            <option>Refund</option>
+                            <option>Cash Drop</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Note Details <span class="text-red-500">*</span></label>
+                        <textarea placeholder="Describe the incident or issue..." rows="4" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 resize-none"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button type="button" onclick="toggleModal('modal-add-note'); toggleModal('modal-shift-report')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 flex items-center focus:outline-none transition">
+                            + Add Note
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-end-shift" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md relative flex flex-col max-h-[95vh]">
+            <div class="p-6 overflow-y-auto">
+                <button onclick="toggleModal('modal-end-shift'); toggleModal('modal-shift-report')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <h2 class="text-xl font-bold text-gray-800 mb-1">End Shift</h2>
+                <p class="text-sm text-gray-500 mb-6">Complete your shift and reconcile cash</p>
+                
+                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 border border-gray-100">
+                    <p class="text-sm font-bold text-gray-700 mb-2 sm:mb-3">Shift Summary</p>
+                    <div class="grid grid-cols-2 gap-y-2 sm:gap-y-3 gap-x-3 sm:gap-x-4 text-xs sm:text-sm">
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-gray-500">Cashier:</p>
+                            <p class="text-gray-800 font-medium" id="es-cashier"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-gray-500">Register:</p>
+                            <p class="text-gray-800 font-medium" id="es-register"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-gray-500">Start Time:</p>
+                            <p class="text-gray-800 font-medium" id="es-start"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-gray-500">Duration:</p>
+                            <p class="text-gray-800 font-medium" id="es-duration"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50/30 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
+                    <p class="text-xs sm:text-sm font-bold text-blue-800 mb-2 sm:mb-3">Financial Summary</p>
+                    <div class="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-blue-800">
+                        <div class="flex justify-between"><span>Starting Float:</span><span class="font-medium">₱5,000.00</span></div>
+                        <div class="flex justify-between"><span>Total Sales:</span><span class="font-medium" id="es-sales"></span></div>
+                        <div class="flex justify-between pb-2 border-b border-blue-200"><span>Total Transactions:</span><span class="font-medium" id="es-txns"></span></div>
+                        <div class="flex justify-between pt-1 items-center"><span class="font-medium">Expected Cash:</span><span class="font-bold text-blue-900 text-sm sm:text-base" id="es-expected"></span></div>
+                    </div>
+                </div>
+
+                <form class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Actual Cash Count (₱) <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" step="0.01" placeholder="Enter actual cash counted..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-gray-50/50 font-medium">
+                            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center pr-2">
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Closing Notes (Optional)</label>
+                        <textarea placeholder="Any final notes or comments..." rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 resize-none"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-3 border-t border-gray-100 mt-4">
+                        <button type="button" onclick="toggleModal('modal-end-shift'); toggleModal('modal-shift-report')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-rose-400 text-white rounded-lg text-sm font-medium hover:bg-rose-500 flex items-center focus:outline-none transition">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> End Shift
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="financial-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('financial-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Financial Reports</h2>
+            <p class="text-sm text-gray-500 mb-6">Select a financial report to generate and view</p>
+            
+            <div class="space-y-4">
+                <div class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></div>
+                        <div><h3 class="font-semibold text-gray-800">Cash-in/Cash-out Flow</h3><p class="text-xs text-gray-500">Track all cash inflows and outflows for the selected period</p></div>
+                    </div>
+                    <button class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "cash-in-out">Generate</button>
+                </div>
+                <div class="border border-purple-100 rounded-lg p-4 flex items-center justify-between hover:bg-purple-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-purple-50 text-purple-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                        <div><h3 class="font-semibold text-gray-800">Balance Sheet</h3><p class="text-xs text-gray-500">View assets, liabilities, and equity at a specific point in time</p></div>
+                    </div>
+                    <button class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "balance_sheet">Generate</button>
+                </div>
+                <div class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <div><h3 class="font-semibold text-gray-800">Income Statement</h3><p class="text-xs text-gray-500">Review revenue, expenses, and profit/loss for the period</p></div>
+                    </div>
+                    <button class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "income_revenue">Generate</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Reports are generated for the current month by default</span>
+                <button onclick="toggleModal('financial-modal')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('export-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Export Data</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose a format to download your dashboard data</p>
+            
+            <div class="space-y-4">
+                <div class="border border-red-100 rounded-lg p-4 flex items-center justify-between hover:bg-red-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-red-50 text-red-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg></div>
+                        <div><h3 class="font-semibold text-gray-800">PDF Document <span class="text-xs text-gray-400 font-normal">(.pdf)</span></h3><p class="text-xs text-gray-500">Export as a formatted PDF file for reports and presentations</p></div>
+                    </div>
+                    <button class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_pdf">Download</button>
+                </div>
+                <div class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div>
+                        <div><h3 class="font-semibold text-gray-800">Excel Spreadsheet <span class="text-xs text-gray-400 font-normal">(.xlsx)</span></h3><p class="text-xs text-gray-500">Export as XLSX for data analysis and manipulation in Excel</p></div>
+                    </div>
+                    <button class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_excel">Download</button>
+                </div>
+                <div class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                        <div><h3 class="font-semibold text-gray-800">CSV File <span class="text-xs text-gray-400 font-normal">(.csv)</span></h3><p class="text-xs text-gray-500">Export as CSV for universal compatibility and data import</p></div>
+                    </div>
+                    <button class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_csv">Download</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Export includes all current dashboard data</span>
+                <button onclick="toggleModal('export-modal')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="record-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('record-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Record Daily Data</h2>
+            <p class="text-sm text-gray-500 mb-4">Record sales or non-sales data for your restaurant</p>
+            
+            <div class="flex bg-gray-100 p-1 rounded-full mb-6">
+                <button type="button" class="flex-1 bg-white text-blue-600 shadow-sm py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Sales Record
+                </button>
+                <button type="button" class="flex-1 text-gray-500 hover:text-gray-700 py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    Non-Sales Record
+                </button>
+            </div>
+
+            <form class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+                        <input type="text" placeholder="e.g., Grilled Salmon" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                        <select class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                            <option>Select category</option>
+                            <option>Food</option>
+                            <option>Beverage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity Sold *</label>
+                        <div class="relative">
+                            <input type="number" placeholder="e.g., 50" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center pr-2">
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Price per Unit (₱) *</label>
+                        <div class="relative">
+                            <input type="number" step="0.01" placeholder="e.g., 28.99" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center pr-2">
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <div class="relative">
+                        <input type="text" value="03 / 31 / 2026" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-800">
+                        <svg class="w-4 h-4 text-gray-400 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex justify-between items-center mt-2">
+                    <span class="text-sm text-gray-600">Total Revenue:</span>
+                    <span class="text-xl font-bold text-blue-600">₱0.00</span>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('record-modal')" class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition focus:outline-none">Record Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="logout-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 text-center relative">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Ready to Leave?</h3>
+            <p class="text-sm text-gray-500 mb-6">Select "Log out" below if you are ready to end your current session.</p>
+            <div class="flex justify-center gap-3">
+                <button onclick="toggleModal('logout-modal')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 w-full focus:outline-none">Cancel</button>
+                <a href="index.html" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 w-full block text-center">Log out</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sidebar.js"></script>
+    <script>
+        let dashboardData = null;
+        let currentLocation = 'mainland';
+        let currentShift = null;
+
+        function toggleModal(modalID) {
+            const m = document.getElementById(modalID);
+            if(m) m.classList.toggle('hidden');
+        }
+
+        // New function to handle the Export alert
+        function executeExport(action) {
+            alert('Executing: ' + action + ' for shift ' + (currentShift ? currentShift.shift_id : ''));
+            toggleModal('modal-save-print');
+        }
+
+        function openStartShiftModal() {
+            const now = new Date();
+            const options = { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+            document.getElementById('dynamic-start-time').innerText = now.toLocaleString('en-US', options);
+            toggleModal('modal-start-shift');
+        }
+
+        function openEndAllShiftsModal() {
+            if (!dashboardData) return;
+            const shifts = dashboardData.locations[currentLocation].shifts;
+            const activeShifts = shifts.filter(s => s.status === 'Active');
+            
+            document.getElementById('eas-warning-count').innerText = activeShifts.length;
+            document.getElementById('eas-list-count').innerText = activeShifts.length;
+            
+            const listContainer = document.getElementById('eas-cashiers-list');
+            listContainer.innerHTML = '';
+            
+            if (activeShifts.length === 0) {
+                listContainer.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-4">No active shifts to end.</p>';
+            } else {
+                activeShifts.forEach(shift => {
+                    listContainer.innerHTML += `
+                        <div class="border border-gray-200 rounded-lg p-3 flex justify-between items-center">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800">${shift.cashier_name}</p>
+                                <p class="text-xs text-gray-500">${shift.register_name}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-green-600">${shift.sales}</p>
+                                <p class="text-xs text-gray-500">${shift.transactions} transactions</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const now = new Date();
+            const options = { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+            document.getElementById('eas-end-time').innerText = now.toLocaleString('en-US', options);
+
+            toggleModal('modal-end-all-shifts');
+        }
+
+        function openShiftReport(shiftId) {
+            if (!dashboardData) return;
+            const shifts = dashboardData.locations[currentLocation].shifts;
+            currentShift = shifts.find(s => s.shift_id === shiftId);
+            if(!currentShift) return;
+
+            document.getElementById('sr-shift-id').innerText = currentShift.shift_id;
+            
+            let statusHtml = currentShift.status === 'Active' ? 
+                `<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-medium flex items-center w-fit"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Active</span>` : 
+                `<span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium flex items-center w-fit"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Completed</span>`;
+            document.getElementById('sr-status').innerHTML = statusHtml;
+
+            document.getElementById('sr-cashier-name').innerText = currentShift.cashier_name;
+            document.getElementById('sr-cashier-id').innerText = currentShift.cashier_id;
+            document.getElementById('sr-register-name').innerText = currentShift.register_name;
+            document.getElementById('sr-register-loc').innerText = currentShift.register_loc;
+            
+            document.getElementById('sr-start-time').innerText = currentShift.start_time;
+            document.getElementById('sr-end-time').innerHTML = currentShift.end_time === 'In Progress' ? `<span class="text-blue-600">${currentShift.end_time}</span>` : currentShift.end_time;
+
+            let rawSales = parseFloat(currentShift.sales.replace(/[^0-9.-]+/g,""));
+            let startingFloat = 5000;
+            let expected = startingFloat + rawSales;
+            let avg = rawSales / currentShift.transactions;
+
+            document.getElementById('sr-sales').innerText = currentShift.sales;
+            document.getElementById('sr-txns').innerText = currentShift.transactions;
+            document.getElementById('sr-avg').innerText = "₱" + avg.toFixed(3);
+            document.getElementById('sr-expected').innerText = "₱" + expected.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            toggleModal('modal-shift-report');
+        }
+
+        function openAddNote() {
+            toggleModal('modal-shift-report');
+            toggleModal('modal-add-note');
+        }
+
+        function openEndShift() {
+            if(!currentShift) return;
+            toggleModal('modal-shift-report');
+
+            document.getElementById('es-cashier').innerText = currentShift.cashier_name;
+            document.getElementById('es-register').innerText = currentShift.register_name;
+            document.getElementById('es-start').innerText = currentShift.start_time;
+            document.getElementById('es-duration').innerText = "8 hours";
+
+            document.getElementById('es-sales').innerText = currentShift.sales;
+            document.getElementById('es-txns').innerText = currentShift.transactions;
+            
+            let rawSales = parseFloat(currentShift.sales.replace(/[^0-9.-]+/g,""));
+            let expected = 5000 + rawSales;
+            document.getElementById('es-expected').innerText = "₱" + expected.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            toggleModal('modal-end-shift');
+        }
+
+        function filterShifts() {
+            if (!dashboardData) return;
+            const shifts = dashboardData.locations[currentLocation].shifts;
+            
+            const searchInput = document.getElementById('search-input');
+            const statusFilter = document.getElementById('status-filter');
+            
+            const searchTxt = searchInput.value.toLowerCase();
+            const statusVal = statusFilter.value;
+
+            const filtered = shifts.filter(s => {
+                const textMatch = `${s.shift_id} ${s.cashier_name} ${s.cashier_id}`.toLowerCase().includes(searchTxt);
+                const statusMatch = (statusVal === "all") || s.status === statusVal;
+                return textMatch && statusMatch;
+            });
+
+            renderTable(filtered);
+        }
+
+        function renderTable(shifts) {
+            const tbody = document.getElementById('shift-logs-body');
+            tbody.innerHTML = '';
+
+            if (shifts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-8 text-center text-gray-400">No shifts found matching your criteria.</td></tr>`;
+                return;
+            }
+
+            shifts.forEach(shift => {
+                let statusBadge = shift.status === "Active" 
+                    ? `<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-medium flex items-center w-fit"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Active</span>`
+                    : `<span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium flex items-center w-fit"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Completed</span>`;
+
+                let endTimeHtml = shift.end_time === "In Progress" 
+                    ? `<span class="text-gray-400">${shift.end_time}</span>` 
+                    : shift.end_time;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition border-b border-gray-50 cursor-pointer" onclick="openShiftReport('${shift.shift_id}')">
+                        <td class="px-6 py-4 font-mono text-xs text-gray-800">${shift.shift_id}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-gray-800">${shift.cashier_name}</div>
+                            <div class="text-xs text-gray-400">${shift.cashier_id}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-gray-800">${shift.register_name}</div>
+                            <div class="text-xs text-gray-400">${shift.register_loc}</div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-800">${shift.start_time}</td>
+                        <td class="px-6 py-4">${endTimeHtml}</td>
+                        <td class="px-6 py-4 font-bold text-green-600">${shift.sales}</td>
+                        <td class="px-6 py-4 text-gray-800">${shift.transactions}</td>
+                        <td class="px-6 py-4 ${shift.variance_color}">${shift.variance}</td>
+                        <td class="px-6 py-4">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+
+
+        window.switchLocation = function(location) {
+            if (!dashboardData) return;
+            currentLocation = location;
+            const locData = dashboardData.locations[location];
+            const btnMainland = document.getElementById('toggle-mainland');
+            const btnfloatingbar = document.getElementById('toggle-floatingbar');
+            const activeClasses = 'bg-white text-blue-600 shadow-sm';
+            const inactiveClasses = 'text-gray-500 hover:text-gray-700';
+
+            if (location === 'mainland') {
+                btnMainland.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${activeClasses}`;
+                btnfloatingbar.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${inactiveClasses}`;
+            } else {
+                btnfloatingbar.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${activeClasses}`;
+                btnMainland.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${inactiveClasses}`;
+            }
+
+            document.getElementById('header-active-count').innerText = locData.kpis.active_cashiers;
+            document.getElementById('kpi-active').innerText = locData.kpis.active_cashiers;
+            document.getElementById('kpi-sales').innerText = locData.kpis.total_sales_today;
+            document.getElementById('kpi-txns').innerText = locData.kpis.total_transactions;
+            document.getElementById('kpi-avg').innerText = locData.kpis.avg_transaction;
+
+            filterShifts();
+        };
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    
+                    const profileBtn = document.getElementById('profile-btn');
+                    const profileDropdown = document.getElementById('profile-dropdown');
+
+                    if (profileBtn && profileDropdown) {
+                        profileBtn.addEventListener('click', (e) => { 
+                            e.stopPropagation(); 
+                            profileDropdown.classList.toggle('hidden'); 
+                        });
+
+                        document.addEventListener('click', (e) => { 
+                            if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) { 
+                                profileDropdown.classList.add('hidden'); 
+                            } 
+                        });
+                    }
+
+                    const searchInput = document.getElementById('search-input');
+                    const statusFilter = document.getElementById('status-filter');
+
+                    if (searchInput) searchInput.addEventListener('input', filterShifts);
+                    if (statusFilter) statusFilter.addEventListener('change', filterShifts);
+
+                    function loadShiftLogs() {
+                        fetch('/api/shift-logs')
+                            .then(res => res.json())
+                            .then(data => {
+                                dashboardData = data;
+                                switchLocation('mainland');
+                            })
+                            .catch(err => console.error(err));
+                    }
+
+                    // Initial load
+                    loadShiftLogs();
+
+                    // Auto refresh every 5 seconds
+                    setInterval(loadShiftLogs, 5000);
+                });
+async function confirmEndAllShifts() {
+    try {
+        const assignedTo = currentLocation === "mainland"
+            ? "mainland"
+            : "floating bar";
+
+        const res = await fetch('/drawer/end-shift', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                assigned_to: assignedTo
+            })
+        });
+
+        const result = await res.json();
+        console.log(result);
+
+        if (res.ok && result.status === "success") {
+            // alert(`Ended ${result.updated} active shifts`);
+
+            toggleModal('modal-end-all-shifts');
+
+
+            window.location.reload();
+
+        } else {
+            alert(result.message || "Failed to end shifts");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Error ending shifts");
+    }
+}
+
+
+document.getElementById("cash-in-out").addEventListener("click", () => {
+    window.location.href = "/export";
+});
+
+document.getElementById("balance_sheet").addEventListener("click", function () {
+    window.location.href = "/balance-sheet-export";
+});
+
+document.getElementById("income_revenue").addEventListener("click", function () {
+    window.location.href = "/income-statement-export";
+});
+
+document.getElementById("btn_pdf").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-pdf";
+});
+
+document.getElementById("btn_excel").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-excel";
+});
+
+
+document.getElementById("btn_csv").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-csv";
+});
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Monitoring - Blue Ocean Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 10px;
+        }
+
+        /* Optional transition for modals */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.2s ease-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 flex h-screen text-gray-800 font-sans overflow-hidden">
+
+    <div id="sidebar-container"></div>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+
+        <header
+            class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 z-20">
+            <div class="flex items-center">
+                <button id="open-sidebar-btn"
+                    class="lg:hidden mr-4 text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3 relative">
+                <button onclick="toggleModal('financial-modal')"
+                    class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    Financial Reports
+                </button>
+                <button onclick="toggleModal('export-modal')"
+                    class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export Data
+                </button>
+                <!-- <button onclick="toggleModal('record-modal')"
+                    class="px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 flex items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Record Data
+                </button> -->
+
+                <button id="profile-btn" class="flex items-center ml-2 focus:outline-none">
+                    <img src="https://lh3.googleusercontent.com/a/ACg8ocIr0M-1_ZpBBsXKEb-6dPS2C-nF8UrhGbrkaT1gsTNAcIQfjC5H=s360-c-no" alt="User"
+                        class="w-8 h-8 rounded-full border border-gray-200 object-cover">
+                    <svg class="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div id="profile-dropdown"
+                    class="hidden absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                    <div class="px-4 py-2 border-b border-gray-100">
+                        <p class="text-sm font-medium text-gray-800">Arjunren Von</p>
+                        <p class="text-xs text-gray-500">arjunrenvon@gmail.com</p>
+                    </div>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Billing</a>
+                    <div class="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                            onclick="toggleModal('logout-modal'); document.getElementById('profile-dropdown').classList.add('hidden')"
+                            class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log
+                            out</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="mb-6 flex flex-col md:flex-row md:items-end justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Welcome back, Arjunren Von!</h1>
+                    <p class="text-gray-500 mt-1">Here's what's happening with your restaurant today.</p>
+                </div>
+                
+                <div class="mt-4 md:mt-0 bg-white p-1 rounded-full inline-flex border border-gray-200 shadow-sm self-center md:self-end">
+                    <button id="toggle-mainland" onclick="switchLocation('mainland')" class="px-6 py-2 rounded-full text-sm font-medium bg-white text-blue-600 shadow-sm flex items-center transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Mainland
+                    </button>
+                    <button id="toggle-floating_bar" onclick="switchLocation('floatingbar')" class="px-6 py-2 rounded-full text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Floating Bar
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 transform hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                        <span id="kpi-revenue-trend" class="text-sm font-medium transition-all duration-300"></span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Total Revenue</p>
+                    <h3 id="kpi-revenue-val" class="text-2xl font-bold text-gray-800 transition-all duration-300"></h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 transform hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <span id="kpi-customers-trend" class="text-sm font-medium transition-all duration-300"></span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Active Customers</p>
+                    <h3 id="kpi-customers-val" class="text-2xl font-bold text-gray-800 transition-all duration-300"></h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 transform hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                        <span id="kpi-cancelled-trend" class="text-sm font-medium transition-all duration-300"></span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Cancelled</p>
+                    <h3 id="kpi-cancelled-val" class="text-2xl font-bold text-gray-800 transition-all duration-300"></h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 transform hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-500">
+                            <span class="font-bold text-lg leading-none">$</span>
+                        </div>
+                        <span id="kpi-net-trend" class="text-sm font-medium transition-all duration-300"></span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Net Sales</p>
+                    <h3 id="kpi-net-val" class="text-2xl font-bold text-gray-800 transition-all duration-300"></h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800">Revenue Overview</h3>
+                    <p class="text-sm text-gray-500 mb-6">Monthly revenue trends</p>
+                    <div class="relative w-full h-64">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800">Weekly Sales</h3>
+                    <p class="text-sm text-gray-500 mb-6">Sales performance this week</p>
+                    <div class="relative w-full h-64">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Reservations</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                        <div class="p-3 bg-blue-50 text-blue-500 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Total Reserved Guests</p>
+                            <h4 id="res-total" class="text-xl font-bold text-gray-800"></h4>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                        <div class="p-3 bg-orange-50 text-orange-500 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Awaiting Guests</p>
+                            <h4 id="res-awaiting" class="text-xl font-bold text-gray-800"></h4>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                        <div class="p-3 bg-green-50 text-green-500 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Checked-in Guests</p>
+                            <h4 id="res-checked" class="text-xl font-bold text-gray-800"></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Sales Overview</h3>
+                        <p class="text-sm text-gray-500">Revenue performance from food and beverage sales</p>
+                    </div>
+                    <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-medium">{{ current_date }}</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50/50 text-gray-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-4">Item ID</th>
+                                <th class="px-6 py-4">Product Name</th>
+                                <th class="px-6 py-4">Category</th>
+                                <th class="px-6 py-4">Qty Sold</th>
+                                <th class="px-6 py-4">Price/Unit</th>
+                                <th class="px-6 py-4">Revenue</th>
+                            
+                            </tr>
+                        </thead>
+                        <tbody id="sales-table-body" class="divide-y divide-gray-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Staff Activity Leaderboard</h3>
+                        <p class="text-sm text-gray-500">Top performers based on guests attended this month</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50/50 text-gray-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-4">Rank</th>
+                                <th class="px-6 py-4">Staff Member</th>
+                                <th class="px-6 py-4">Role</th>
+                                <th class="px-6 py-4">Guests Attended</th>
+                                <!-- <th class="px-6 py-4">Present</th>
+                                <th class="px-6 py-4">Absences</th> -->
+                                <th class="px-6 py-4 text-right">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-table-body" class="divide-y divide-gray-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="financial-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('financial-modal')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Financial Reports</h2>
+            <p class="text-sm text-gray-500 mb-6">Select a financial report to generate and view</p>
+
+            <div class="space-y-4">
+                <div
+                    class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Cash-in/Cash-out Flow</h3>
+                            <p class="text-xs text-gray-500">Track all cash inflows and outflows for the selected period
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800" id = "cash-in-out">Generate</button>
+                </div>
+
+                <div
+                    class="border border-purple-100 rounded-lg p-4 flex items-center justify-between hover:bg-purple-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-purple-50 text-purple-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Balance Sheet</h3>
+                            <p class="text-xs text-gray-500">View assets, liabilities, and equity at a specific point in
+                                time</p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800" id = "balance_sheet">Generate</button>
+                </div>
+
+                <div
+                    class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Income Statement</h3>
+                            <p class="text-xs text-gray-500">Review revenue, expenses, and profit/loss for the period
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800" id ="income_revenue">Generate</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Reports are generated for the current month by default</span>
+                <button onclick="toggleModal('financial-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('export-modal')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Export Data</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose a format to download your dashboard data</p>
+
+            <div class="space-y-4">
+                <div
+                    class="border border-red-100 rounded-lg p-4 flex items-center justify-between hover:bg-red-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-red-50 text-red-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">PDF Document <span
+                                    class="text-xs text-gray-400 font-normal">(.pdf)</span></h3>
+                            <p class="text-xs text-gray-500">Export as a formatted PDF file for reports and
+                                presentations</p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800" id = "btn_pdf">Download</button>
+                </div>
+
+                <div
+                    class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Excel Spreadsheet <span
+                                    class="text-xs text-gray-400 font-normal">(.xlsx)</span></h3>
+                            <p class="text-xs text-gray-500">Export as XLSX for data analysis and manipulation in Excel
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800" id = "btn_excel">Download</button>
+                </div>
+
+                <div
+                    class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">CSV File <span
+                                    class="text-xs text-gray-400 font-normal">(.csv)</span></h3>
+                            <p class="text-xs text-gray-500">Export as CSV for universal compatibility and data import
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800" id = "btn_csv">Download</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Export includes all current dashboard data</span>
+                <button onclick="toggleModal('export-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="record-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('record-modal')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Record Daily Data</h2>
+            <p class="text-sm text-gray-500 mb-4">Record sales or non-sales data for your restaurant</p>
+
+            <div class="flex bg-gray-100 p-1 rounded-full mb-6">
+                <button type="button"
+                    class="flex-1 bg-white text-blue-600 shadow-sm py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    Sales Record
+                </button>
+                <button type="button"
+                    class="flex-1 text-gray-500 hover:text-gray-700 py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    Non-Sales Record
+                </button>
+            </div>
+
+            <form class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+                        <input type="text" placeholder="e.g., Grilled Salmon"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                        <select
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                            <option>Select category</option>
+                            <option>Food</option>
+                            <option>Beverage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity Sold *</label>
+                        <input type="number" placeholder="e.g., 50"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Price per Unit (₱) *</label>
+                        <input type="number" step="0.01" placeholder="e.g., 28.99"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <input type="date" value="2026-03-31"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-600">
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex justify-between items-center mt-2">
+                    <span class="text-sm text-gray-600">Total Revenue:</span>
+                    <span class="text-xl font-bold text-blue-600">₱0.00</span>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('record-modal')"
+                        class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition focus:outline-none">Record
+                        Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="logout-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 text-center relative">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                    </path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Ready to Leave?</h3>
+            <p class="text-sm text-gray-500 mb-6">Select "Log out" below if you are ready to end your current session.
+            </p>
+            <div class="flex justify-center gap-3">
+                <button onclick="toggleModal('logout-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 w-full focus:outline-none">Cancel</button>
+                <a href="index.html"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 w-full block text-center">Log
+                    out</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sidebar.js"></script>
+    <script>
+     function toggleModal(modalID) {
+    const modal = document.getElementById(modalID);
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const profileBtn = document.getElementById('profile-btn');
+    const profileDropdown = document.getElementById('profile-dropdown');
+
+    profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+            profileDropdown.classList.add('hidden');
+        }
+    });
+
+});
+
+let dashboardData = null;
+let revChart = null;
+let weekChart = null;
+
+const populateKPI = (id, kpiData) => {
+    document.getElementById(`${id}-val`).innerText = kpiData.value;
+    const trendEl = document.getElementById(`${id}-trend`);
+    trendEl.innerText = kpiData.trend;
+    trendEl.className = `text-sm font-medium ${kpiData.positive ? 'text-green-500' : 'text-red-500'} transition-all duration-300`;
+};
+
+window.switchLocation = function(location) {
+    if (!dashboardData) return;
+
+    const locData = dashboardData.locations[location];
+
+    const btnMainland = document.getElementById('toggle-mainland');
+    const btnfloatingbar = document.getElementById('toggle-floating_bar');
+
+    const activeClasses = 'bg-white text-blue-600 shadow-sm';
+    const inactiveClasses = 'text-gray-500 hover:text-gray-700';
+
+    if (location === 'mainland') {
+        btnMainland.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${activeClasses}`;
+        btnfloatingbar.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${inactiveClasses}`;
+    } else {
+        btnfloatingbar.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${activeClasses}`;
+        btnMainland.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${inactiveClasses}`;
+    }
+
+    populateKPI('kpi-revenue', locData.kpis.total_revenue);
+    populateKPI('kpi-customers', locData.kpis.active_customers);
+    populateKPI('kpi-cancelled', locData.kpis.cancelled);
+    populateKPI('kpi-net', locData.kpis.net_sales);
+
+    if (revChart) {
+        revChart.data.datasets[0].data = locData.charts.revenue_overview.data;
+        revChart.update();
+    }
+
+    if (weekChart) {
+        weekChart.data.datasets[0].data = locData.charts.weekly_sales.data;
+        weekChart.update();
+    }
+};
+
+async function loadDashboardData() {
+    try {
+        const response = await fetch('/api/data');
+        const data = await response.json();
+
+        // console.log("🔄 Dashboard refreshed at", new Date().toLocaleTimeString());
+
+        dashboardData = data;
+
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+
+        if (!revChart) {
+            revChart = new Chart(revCtx, {
+                type: 'line',
+                data: {
+                    labels: data.locations.mainland.charts.revenue_overview.labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, border: { display: false }, grid: { borderDash: [5, 5] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        const weekCtx = document.getElementById('weeklyChart').getContext('2d');
+
+        if (!weekChart) {
+            weekChart = new Chart(weekCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.locations.mainland.charts.weekly_sales.labels,
+                    datasets: [{
+                        label: 'Sales',
+                        data: [],
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, border: { display: false }, grid: { borderDash: [5, 5] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        switchLocation('mainland');
+
+        document.getElementById('res-total').innerText = data.shared.reservations.reserved;
+        document.getElementById('res-awaiting').innerText = data.shared.reservations.awaiting;
+        document.getElementById('res-checked').innerText = data.shared.reservations.checked_in;
+
+        const salesBody = document.getElementById('sales-table-body');
+        salesBody.innerHTML = '';
+        data.shared.sales.forEach(item => {
+            salesBody.innerHTML += `
+                <tr>
+                    <td class="px-6 py-4">${item.id}</td>
+                    <td class="px-6 py-4 font-medium text-gray-800">${item.name}</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-purple-50 text-purple-600 px-2 py-1 rounded-md text-xs">${item.category}</span>
+                    </td>
+                    <td class="px-6 py-4">${item.qty}</td>
+                    <td class="px-6 py-4">${item.price}</td>
+                    <td class="px-6 py-4 text-green-600 font-medium">${item.revenue}</td>
+                    
+                </tr>
+            `;
+        });
+
+        const staffBody = document.getElementById('staff-table-body');
+        staffBody.innerHTML = '';
+        data.shared.staff.forEach(staff => {
+            const rankIcon = staff.rank === "1" ? "🏆" : (staff.rank === "2" ? "🥈" : "🥉");
+            staffBody.innerHTML += `
+                <tr>
+                    <td class="px-6 py-4 text-xl">${rankIcon}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-gray-800">${staff.name}</div>
+                        <div class="text-xs text-gray-400">${staff.id}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="border border-gray-200 px-2 py-1 rounded-md text-xs">${staff.role}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded-md">${staff.guests}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-medium ${staff.positive ? 'text-green-500' : 'text-red-500'}">${staff.trend}</td>
+                </tr>
+            `;
+        });
+
+    } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+
+    loadDashboardData();
+    setInterval(() => {
+        loadDashboardData();
+    }, 20000);
+
+});
+
+document.getElementById("cash-in-out").addEventListener("click", () => {
+    window.location.href = "/export";
+});
+
+document.getElementById("balance_sheet").addEventListener("click", function () {
+    window.location.href = "/balance-sheet-export";
+});
+
+document.getElementById("income_revenue").addEventListener("click", function () {
+    window.location.href = "/income-statement-export";
+});
+
+document.getElementById("btn_pdf").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-pdf";
+});
+
+document.getElementById("btn_excel").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-excel";
+});
+
+
+document.getElementById("btn_csv").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-csv";
+});
+    </script>
+</body>
+
+</html>

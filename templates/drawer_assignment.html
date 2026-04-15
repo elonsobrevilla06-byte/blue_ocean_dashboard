@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Monitoring - Blue Ocean Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen text-gray-800 font-sans overflow-hidden">
+
+    <div id="sidebar-container"></div>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 z-20">
+            <div class="flex items-center">
+                <button id="open-sidebar-btn" class="lg:hidden mr-4 text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3 relative">
+                <button onclick="toggleModal('financial-modal')" class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg> Financial Reports
+                </button>
+                <button onclick="toggleModal('export-modal')" class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export Data
+                </button>
+                <!-- <button onclick="toggleModal('record-modal')" class="px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 flex items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Record Data
+                </button> -->
+                
+                <button id="profile-btn" class="flex items-center ml-2 focus:outline-none">
+                    <img src="https://lh3.googleusercontent.com/a/ACg8ocIr0M-1_ZpBBsXKEb-6dPS2C-nF8UrhGbrkaT1gsTNAcIQfjC5H=s360-c-no" alt="User" class="w-8 h-8 rounded-full border border-gray-200 object-cover">
+                    <svg class="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+
+                <div id="profile-dropdown" class="hidden absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                    <div class="px-4 py-2 border-b border-gray-100">
+                        <p class="text-sm font-medium text-gray-800">Arjunren Von</p>
+                        <p class="text-xs text-gray-500">arjunrenvon@gmail.com</p>
+                    </div>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Billing</a>
+                    <div class="border-t border-gray-100 mt-1 pt-1">
+                        <button onclick="toggleModal('logout-modal'); document.getElementById('profile-dropdown').classList.add('hidden')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log out</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="flex flex-col md:flex-row md:items-start justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Drawer Assignment</h1>
+                    <p class="text-gray-500 mt-1">Manage cash drawer assignments and cashier shifts</p>
+                </div>
+                <div class="flex gap-3 mt-4 md:mt-0">
+                    <button onclick="toggleModal('modal-assign-drawer')" class="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> Assign Drawer
+                    </button>
+                    <button onclick="toggleModal('modal-add-register')" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 shadow-sm flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> Add Register
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-center mb-8">
+                <div class="bg-white p-1 rounded-full inline-flex border border-gray-200 shadow-sm">
+                    <button id="toggle-mainland" onclick="switchLocation('mainland')" class="px-6 py-2 rounded-full text-sm font-medium bg-white text-blue-600 shadow-sm flex items-center transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Mainland
+                    </button>
+                    <button id="toggle-floatingbar" onclick="switchLocation('floatingbar')" class="px-6 py-2 rounded-full text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Floating Bar
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>
+                        <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">Active</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Active Drawers</p>
+                    <h3 id="kpi-active" class="text-2xl font-bold text-gray-800 transition-all"></h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-green-50 rounded-lg text-green-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Total Cash in Drawers</p>
+                    <h3 id="kpi-cash" class="text-2xl font-bold text-gray-800 transition-all"></h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-purple-50 rounded-lg text-purple-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Total Sales Today</p>
+                    <h3 id="kpi-sales" class="text-2xl font-bold text-gray-800 transition-all"></h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition duration-300 hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-orange-50 rounded-lg text-orange-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">Transactions (Today) </p>
+                    <h3 id="kpi-txns" class="text-2xl font-bold text-gray-800 transition-all"></h3>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800">Active Drawer Assignments</h3>
+                    <p class="text-sm text-gray-500">Currently active cash drawers and assigned cashiers. Click a row to manage.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50/50 text-gray-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-4">Drawer ID</th>
+                                <th class="px-6 py-4">Register</th>
+                                <th class="px-6 py-4">Cashier</th>
+                                <th class="px-6 py-4">Start Time</th>
+                                <th class="px-6 py-4">Current Balance</th>
+                                <th class="px-6 py-4">Total Sales</th>
+
+                                <th class="px-6 py-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-drawers-body" class="divide-y divide-gray-100 cursor-pointer">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800">Drawer History</h3>
+                    <p class="text-sm text-gray-500">Closed drawer assignments and reconciliation records</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50/50 text-gray-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-4">Drawer ID</th>
+                                <th class="px-6 py-4">Register</th>
+                                <th class="px-6 py-4">Cashier</th>
+                                <th class="px-6 py-4">Start Time</th>
+                                <th class="px-6 py-4">End Time</th>
+                                <th class="px-6 py-4">Starting Float</th>
+                                <th class="px-6 py-4">Total Sales</th>
+                                <th class="px-6 py-4">Ending Balance</th>
+                                <th class="px-6 py-4">Variance</th>
+                                <th class="px-6 py-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-drawers-body" class="divide-y divide-gray-100">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="financial-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('financial-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Financial Reports</h2>
+            <p class="text-sm text-gray-500 mb-6">Select a financial report to generate and view</p>
+            
+            <div class="space-y-4">
+                <div class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Cash-in/Cash-out Flow</h3>
+                            <p class="text-xs text-gray-500">Track all cash inflows and outflows for the selected period</p>
+                        </div>
+                    </div>
+                    <button class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "cash-in-out">Generate</button>
+                </div>
+
+                <div class="border border-purple-100 rounded-lg p-4 flex items-center justify-between hover:bg-purple-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-purple-50 text-purple-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Balance Sheet</h3>
+                            <p class="text-xs text-gray-500">View assets, liabilities, and equity at a specific point in time</p>
+                        </div>
+                    </div>
+                    <button class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "balance_sheet">Generate</button>
+                </div>
+
+                <div class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Income Statement</h3>
+                            <p class="text-xs text-gray-500">Review revenue, expenses, and profit/loss for the period</p>
+                        </div>
+                    </div>
+                    <button class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "income_revenue">Generate</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Reports are generated for the current month by default</span>
+                <button onclick="toggleModal('financial-modal')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('export-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Export Data</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose a format to download your dashboard data</p>
+            
+            <div class="space-y-4">
+                <div class="border border-red-100 rounded-lg p-4 flex items-center justify-between hover:bg-red-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-red-50 text-red-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">PDF Document <span class="text-xs text-gray-400 font-normal">(.pdf)</span></h3>
+                            <p class="text-xs text-gray-500">Export as a formatted PDF file for reports and presentations</p>
+                        </div>
+                    </div>
+                    <button class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_pdf">Download</button>
+                </div>
+
+                <div class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Excel Spreadsheet <span class="text-xs text-gray-400 font-normal">(.xlsx)</span></h3>
+                            <p class="text-xs text-gray-500">Export as XLSX for data analysis and manipulation in Excel</p>
+                        </div>
+                    </div>
+                    <button class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_excel">Download</button>
+                </div>
+
+                <div class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">CSV File <span class="text-xs text-gray-400 font-normal">(.csv)</span></h3>
+                            <p class="text-xs text-gray-500">Export as CSV for universal compatibility and data import</p>
+                        </div>
+                    </div>
+                    <button class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_csv">Download</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Export includes all current dashboard data</span>
+                <button onclick="toggleModal('export-modal')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="record-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('record-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Record Daily Data</h2>
+            <p class="text-sm text-gray-500 mb-4">Record sales or non-sales data for your restaurant</p>
+            
+            <div class="flex bg-gray-100 p-1 rounded-full mb-6">
+                <button type="button" class="flex-1 bg-white text-blue-600 shadow-sm py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Sales Record
+                </button>
+                <button type="button" class="flex-1 text-gray-500 hover:text-gray-700 py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg> Non-Sales Record
+                </button>
+            </div>
+
+            <form class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+                        <input type="text" placeholder="e.g., Grilled Salmon" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                        <select class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                            <option>Select category</option>
+                            <option>Food</option>
+                            <option>Beverage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity Sold *</label>
+                        <input type="number" placeholder="e.g., 50" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Price per Unit (₱) *</label>
+                        <input type="number" step="0.01" placeholder="e.g., 28.99" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <input type="date" value="2026-03-31" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-600">
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex justify-between items-center mt-2">
+                    <span class="text-sm text-gray-600">Total Revenue:</span>
+                    <span class="text-xl font-bold text-blue-600">₱0.00</span>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('record-modal')" class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition focus:outline-none">Record Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="logout-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 text-center relative">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg></div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Ready to Leave?</h3>
+            <p class="text-sm text-gray-500 mb-6">Select "Log out" below if you are ready to end your current session.</p>
+            <div class="flex justify-center gap-3">
+                <button onclick="toggleModal('logout-modal')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 w-full focus:outline-none">Cancel</button>
+                <a href="index.html" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 w-full block text-center">Log out</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-manage-drawer" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+            <button onclick="toggleModal('modal-manage-drawer')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Manage Drawer Assignment</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose an action to perform on this drawer assignment</p>
+            
+            <div class="space-y-3 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100 text-sm">
+                <div class="flex justify-between"><span class="text-gray-500">Register:</span><span class="font-medium text-gray-800" id="mg-register"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Cashier:</span><span class="font-medium text-gray-800" id="mg-cashier"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-3"><span class="text-gray-500">Shift Started:</span><span class="text-gray-800" id="mg-start"></span></div>
+                
+                <div class="flex justify-between pt-1"><span class="text-gray-500">Starting Float:</span><span class="font-bold text-gray-800" id="mg-float"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Total Sales:</span><span class="font-bold text-green-600" id="mg-sales"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Expected Cash:</span><span class="font-bold text-blue-600" id="mg-expected"></span></div>
+            </div>
+
+            <div class="flex gap-3 mb-4">
+                <button onclick="openModalFromManage('modal-transfer-drawer')" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg> Transfer
+                </button>
+                <button onclick="openModalFromManage('modal-close-drawer')" class="flex-1 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Close Drawer
+                </button>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="toggleModal('modal-manage-drawer')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-transfer-drawer" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+            <button onclick="toggleModal('modal-transfer-drawer')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Transfer Drawer Assignment</h2>
+            <p class="text-sm text-gray-500 mb-6">Transfer this drawer to another cashier during shift change</p>
+            
+            <div class="space-y-2 mb-6 text-sm">
+                <div class="flex justify-between"><span class="text-gray-500">Current Register:</span><span class="font-medium text-gray-800" id="tr-register"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Current Cashier:</span><span class="font-medium text-gray-800" id="tr-cashier"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Current Balance:</span><span class="font-bold text-green-600" id="tr-balance"></span></div>
+            </div>
+
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">New Cashier</label>
+                    <select id = "new_cashier" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500">
+                        {% for c in cashier %}
+                            {% if (c.position | lower) == 'cashier' %}
+                                <option value="{{ c.firstName }} {{ c.lastName }}">
+                                    {{ c.firstName }} {{ c.lastName }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Transfer Notes</label>
+                    <textarea placeholder="Reason for transfer or handover notes..." rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('modal-transfer-drawer')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button id = "transafer_drawer"type="submit" class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium flex items-center hover:bg-gray-800">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg> Transfer Drawer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-close-drawer" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+            <button onclick="toggleModal('modal-close-drawer')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Close Cash Drawer</h2>
+            <p class="text-sm text-gray-500 mb-6">Close this drawer assignment and reconcile the cash</p>
+            
+            <div class="space-y-3 mb-4 bg-gray-50 p-4 rounded-lg border border-gray-100 text-sm">
+                <div class="flex justify-between"><span class="text-gray-500">Register:</span><span class="font-medium text-gray-800" id="cl-register"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Cashier:</span><span class="font-medium text-gray-800" id="cl-cashier"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-3"><span class="text-gray-500">Shift Started:</span><span class="text-gray-800" id="cl-start"></span></div>
+                <div class="flex justify-between pt-1"><span class="text-gray-500">Starting Float:</span><span class="font-bold text-gray-800" id="cl-float"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Total Sales:</span><span class="font-bold text-green-600" id="cl-sales"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Expected Cash:</span><span class="font-bold text-blue-600" id="cl-expected"></span></div>
+            </div>
+
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Actual Ending Cash (₱)</label>
+                    <input type="number" step="0.01" id="actual-cash-input" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-bold text-gray-800">
+                    <p class="text-xs text-gray-400 mt-1">Count all cash in the drawer</p>
+                </div>
+                
+                <div id="variance-box" class="p-3 rounded-lg border flex flex-col transition-colors border-gray-200 bg-gray-50">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-700" id="variance-label">Cash Variance:</span>
+                        <span class="text-lg font-bold text-gray-800" id="variance-amount">₱0.00</span>
+                    </div>
+                    <span class="text-xs mt-1 text-gray-500" id="variance-status">Enter actual cash to compute</span>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Closing Notes</label>
+                    <textarea placeholder="Any issues or notes about this shift..." rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('modal-close-drawer')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+
+                    <button type="submit" id = "close_drawer" class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium flex items-center hover:bg-gray-800">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Close Drawer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-add-register" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('modal-add-register')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Add New Register</h2>
+            <p class="text-sm text-gray-500 mb-6">Add a new cash register to the system</p>
+
+            <form class="space-y-4">
+                <div>
+                    <label  class="block text-sm font-medium text-gray-700 mb-1">Register Name <span class="text-red-500">*</span></label>
+                    <input id = "register_name" type="text" placeholder="Mainland - Main Counter" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50">
+                </div>
+                <div>
+                    <label  class="block text-sm font-medium text-gray-700 mb-1">Drawer ID <span class="text-red-500">*</span></label>
+                    <input id = "drawer_id" type="text" placeholder="Drawer" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Location <span class="text-red-500">*</span></label>
+                    <select id = "location" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-800 bg-gray-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                        <option>Mainland</option>
+                        <option>Floating Bar</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea id = "notes" placeholder="Any special instructions or notes..." rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="toggleModal('modal-add-register')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button id = "add-register-btn"type="button" class="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium flex items-center hover:bg-gray-600">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add Register
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-assign-drawer" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('modal-assign-drawer')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Assign Cash Drawer</h2>
+            <p class="text-sm text-gray-500 mb-6">Assign a cash drawer to a cashier before they start their shift</p>
+
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Register <span class="text-red-500">*</span></label>
+                    <select id = "register_select" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500 bg-gray-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                        
+                        {% for reg in register%}
+                            <option value = "{{reg.register_name}}"  data-location="{{ reg.location }}" data-id = {{reg.drawer_id}}>
+                                    {{reg.register_name}}
+
+                            </option>
+                        {%    endfor %}
+                        
+
+
+                    </select>
+                </div>
+                <div>
+                 <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Drawer ID <span class="text-red-500">*</span>
+                    </label>
+                    <input id = "drawer_id_select" type="text" placeholder="DRW-H-001"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50">
+                </div>
+
+
+                <div>
+                 <label class="block text-sm font-medium text-gray-700 mb-1">
+                       Location <span class="text-red-500">*</span>
+                    </label>
+                    <input id = "Location" type="text" placeholder="DRW-H-001"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cashier <span class="text-red-500">*</span></label>
+                    <select id ="assign_cashier" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500 bg-gray-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                        {% for c in cashier %}
+                            {% if (c.position | lower) == 'cashier' %}
+                                <option value="{{ c.firstName }} {{ c.lastName }}">
+                                    {{ c.firstName }} {{ c.lastName }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+
+
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Starting Float (₱) <span class="text-red-500">*</span></label>
+                    <input id = "starting_cash_assign" type="number" step="0.01" value="5000.00" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-800 bg-gray-50/50">
+                    <p class="text-xs text-gray-500 mt-1">Initial cash amount in the drawer</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea id = "notes_assign" placeholder="Any special instructions or notes..." rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-gray-50/50 resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="toggleModal('modal-assign-drawer')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button id = "assign_drawer" type="button" class="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium flex items-center hover:bg-gray-600">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Assign Drawer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/sidebar.js"></script>
+    <script>
+        let dashboardData = null;
+        let currentDrawerData = null;
+
+        function toggleModal(modalID) {
+            const m = document.getElementById(modalID);
+            if(m) m.classList.toggle('hidden');
+        }
+
+     document.addEventListener('DOMContentLoaded', () => {
+
+    const profileBtn = document.getElementById('profile-btn');
+    const profileDropdown = document.getElementById('profile-dropdown');
+
+    if (profileBtn && profileDropdown) {
+        profileBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            profileDropdown.classList.toggle('hidden'); 
+        });
+
+        document.addEventListener('click', (e) => { 
+            if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) { 
+                profileDropdown.classList.add('hidden'); 
+            } 
+        });
+    }
+
+    function loadDrawerAssignment() {
+        fetch('/api/drawer-assignment')
+            .then(res => res.json())
+            .then(data => {
+                dashboardData = data; 
+                switchLocation('mainland');
+            })
+            .catch(err => console.error(err));
+    }
+
+    loadDrawerAssignment();
+
+
+    setInterval(loadDrawerAssignment, 20000);
+
+    // REGISTER SELECT → AUTO FILL DRAWER + LOCATION
+    const registerSelect = document.getElementById("register_select");
+    const drawerInput = document.getElementById("drawer_id_select");
+    const locationInput = document.getElementById("Location");
+
+    if (registerSelect && drawerInput) {
+        registerSelect.addEventListener("change", function () {
+            const selectedOption = this.options[this.selectedIndex];
+
+            const drawerId = selectedOption.getAttribute("data-id");
+            const location = selectedOption.getAttribute("data-location");
+
+            console.log("Selected drawer_id:", drawerId);
+            console.log("Selected location:", location);
+
+            drawerInput.value = drawerId;
+
+            if (locationInput) {
+                locationInput.value = location || "";
+            }
+        });
+    }
+
+    const cashInput = document.getElementById('actual-cash-input');
+    if (cashInput) {
+        cashInput.addEventListener('input', calculateVariance);
+    }
+
+});
+
+
+        window.switchLocation = function(location) {
+            if (!dashboardData) return;
+            const locData = dashboardData.locations[location];
+            const btnMainland = document.getElementById('toggle-mainland');
+            const btnfloatingbar = document.getElementById('toggle-floatingbar');
+            const activeClasses = 'bg-white text-blue-600 shadow-sm';
+            const inactiveClasses = 'text-gray-500 hover:text-gray-700';
+
+            if (location === 'mainland') {
+                btnMainland.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${activeClasses}`;
+                btnfloatingbar.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${inactiveClasses}`;
+            } else {
+                btnfloatingbar.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${activeClasses}`;
+                btnMainland.className = `px-6 py-2 rounded-full text-sm font-medium flex items-center transition-all ${inactiveClasses}`;
+            }
+
+            document.getElementById('kpi-active').innerText = locData.kpis.active_drawers;
+            document.getElementById('kpi-cash').innerText = locData.kpis.total_cash;
+            document.getElementById('kpi-sales').innerText = locData.kpis.total_sales;
+            document.getElementById('kpi-txns').innerText = locData.kpis.total_transactions;
+                    // <td class="px-6 py-4"><div>${drawer.register}</div><div class="text-xs text-gray-400">${drawer.reg_id}</div></td>
+                    // <td class="px-6 py-4"><div>${drawer.cashier}</div><div class="text-xs text-gray-400">${drawer.cashier_id}</div></td>
+            const activeBody = document.getElementById('active-drawers-body');
+            activeBody.innerHTML = '';
+            locData.active_drawers.forEach((drawer) => {
+                const tr = document.createElement('tr');
+                tr.dataset.id = drawer.id;
+                tr.className = "hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-800">${drawer.drawer_id}</td>
+                    <td class="px-6 py-4"><div>${drawer.register}</div>
+                    <td class="px-6 py-4"><div>${drawer.cashier}</div>
+                    <td class="px-6 py-4">${drawer.start_time}</td>
+                    <td class="px-6 py-4 font-bold text-green-600">${drawer.current_balance}</td>
+                    <td class="px-6 py-4 text-gray-600">${drawer.total_sales}</td>
+                
+                    <td class="px-6 py-4"><span class="bg-green-50 text-green-600 px-2 py-1 rounded-full text-xs font-medium flex items-center w-fit"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>${drawer.status}</span></td>
+                `;
+                tr.onclick = () => openManageModal(drawer);
+                activeBody.appendChild(tr);
+            });
+                                    // <td class="px-6 py-4"><div>${hist.register}</div><div class="text-xs text-gray-400">${hist.reg_id}</div></td>
+                        // <td class="px-6 py-4"><div>${hist.cashier}</div><div class="text-xs text-gray-400">${hist.cashier_id}</div></td>
+            const historyBody = document.getElementById('history-drawers-body');
+            historyBody.innerHTML = '';
+            locData.history.forEach(hist => {
+                historyBody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 font-medium text-gray-800">${hist.drawer_id}</td>
+                        <td class="px-6 py-4"><div>${hist.register}</div>
+                        <td class="px-6 py-4"><div>${hist.cashier}</div>
+                        <td class="px-6 py-4 whitespace-nowrap">${hist.start_time}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${hist.end_time}</td>
+                        <td class="px-6 py-4">${hist.starting_float}</td>
+                        <td class="px-6 py-4">${hist.total_sales}</td>
+                        <td class="px-6 py-4 font-medium text-gray-800">${hist.ending_balance}</td>
+                        <td class="px-6 py-4 font-bold ${hist.variance_color}">${hist.variance}</td>
+                        <td class="px-6 py-4"><span class="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs">${hist.status}</span></td>
+                    </tr>
+                `;
+            });
+        };
+
+        function openManageModal(drawerData) {
+            currentDrawerData = drawerData; 
+            
+            document.getElementById('mg-register').innerText = drawerData.register;
+            document.getElementById('mg-cashier').innerText = drawerData.cashier;
+            document.getElementById('mg-start').innerText = drawerData.start_time;
+            document.getElementById('mg-float').innerText = drawerData.starting_float;
+            document.getElementById('mg-sales').innerText = drawerData.total_sales;
+            document.getElementById('mg-expected').innerText = drawerData.current_balance;
+
+            toggleModal('modal-manage-drawer');
+        }
+
+        function openModalFromManage(targetModalID) {
+            toggleModal('modal-manage-drawer'); 
+
+            if (targetModalID === 'modal-transfer-drawer') {
+                document.getElementById('tr-register').innerText = currentDrawerData.register;
+                document.getElementById('tr-cashier').innerText = currentDrawerData.cashier;
+                document.getElementById('tr-balance').innerText = currentDrawerData.current_balance;
+            } 
+            else if (targetModalID === 'modal-close-drawer') {
+                document.getElementById('cl-register').innerText = currentDrawerData.register;
+                document.getElementById('cl-cashier').innerText = currentDrawerData.cashier;
+                document.getElementById('cl-start').innerText = currentDrawerData.start_time;
+                document.getElementById('cl-float').innerText = currentDrawerData.starting_float;
+                document.getElementById('cl-sales').innerText = currentDrawerData.total_sales;
+                document.getElementById('cl-expected').innerText = currentDrawerData.current_balance;
+                
+                const input = document.getElementById('actual-cash-input');
+                input.value = currentDrawerData.raw_expected;
+                calculateVariance();
+            }
+
+            toggleModal(targetModalID); 
+        }
+
+        const cashInput = document.getElementById('actual-cash-input');
+        cashInput.addEventListener('input', calculateVariance);
+
+        function calculateVariance() {
+            if (!currentDrawerData) return;
+
+            const expected = currentDrawerData.raw_expected;
+            const actual = parseFloat(cashInput.value) || 0;
+            const variance = actual - expected;
+
+            const box = document.getElementById('variance-box');
+            const amountLabel = document.getElementById('variance-amount');
+            const statusLabel = document.getElementById('variance-status');
+            const mainLabel = document.getElementById('variance-label');
+
+            const formattedVariance = "₱" + Math.abs(variance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            if (variance === 0) {
+                box.className = "p-3 rounded-lg border flex flex-col transition-colors border-green-200 bg-green-50/50";
+                amountLabel.className = "text-lg font-bold text-green-600";
+                amountLabel.innerText = formattedVariance;
+                mainLabel.className = "text-sm font-medium text-green-700";
+                statusLabel.className = "text-xs mt-1 text-green-600 flex items-center";
+                statusLabel.innerHTML = "<svg class='w-3 h-3 mr-1' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg> Cash is balanced";
+            } else if (variance > 0) {
+                box.className = "p-3 rounded-lg border flex flex-col transition-colors border-blue-200 bg-blue-50/50";
+                amountLabel.className = "text-lg font-bold text-blue-600";
+                amountLabel.innerText = "+" + formattedVariance;
+                mainLabel.className = "text-sm font-medium text-blue-700";
+                statusLabel.className = "text-xs mt-1 text-blue-600 flex items-center";
+                statusLabel.innerHTML = "<svg class='w-3 h-3 mr-1' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'></path></svg> Cash overage detected";
+            } else {
+                box.className = "p-3 rounded-lg border flex flex-col transition-colors border-red-200 bg-red-50/50";
+                amountLabel.className = "text-lg font-bold text-red-600";
+                amountLabel.innerText = "-" + formattedVariance;
+                mainLabel.className = "text-sm font-medium text-red-700";
+                statusLabel.className = "text-xs mt-1 text-red-600 flex items-center";
+                statusLabel.innerHTML = "<svg class='w-3 h-3 mr-1' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'></path></svg> Cash shortage detected";
+            }
+        }
+
+
+        document.getElementById("close_drawer").addEventListener("click", async function (e) {
+            e.preventDefault();
+
+            if (!currentDrawerData || !currentDrawerData.id) {
+                alert("No drawer selected");
+                return;
+            }
+
+            const id = currentDrawerData.id;
+
+            try {
+                const response = await fetch(`/employee-drawer/${id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        status: "Closed",
+
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // alert("Drawer closed successfully");
+
+                
+                    toggleModal('modal-close-drawer');
+
+                    // Optional: refresh data
+                    location.reload();
+
+                } else {
+                    console.error(result);
+                    alert(result.message || "Failed to close drawer");
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Something went wrong");
+            }
+        });
+            document.getElementById("add-register-btn").addEventListener("click", async function () {
+
+                const register_name = document.getElementById("register_name").value;
+                const drawer_id = document.getElementById("drawer_id").value;
+                const register_location = document.getElementById("location").value;
+                const notes = document.getElementById("notes").value;
+
+                // ✅ FIXED validation
+                if (!register_name || !drawer_id || !register_location) {
+                    alert("Please fill in the required fields");
+                    return;
+                }
+
+                const payload = {
+                    register_name,
+                    drawer_id,
+                    location: register_location,
+                    notes
+                };
+
+                try {
+                    const response = await fetch("/employee-drawer/add-register", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // alert("Register added successfully");
+
+                        // Close modal first
+                        toggleModal('modal-add-register');
+
+
+                        setTimeout(() => {
+                            location.reload();
+                        }, 500);
+
+                    } else {
+                        console.error(result);
+                        alert(result.message || "Failed to add register");
+                    }
+
+                } catch (error) {
+                    console.error("Error", error);
+                    alert("Something went wrong");
+                }
+            });
+
+            
+document.getElementById("assign_drawer").addEventListener("click", async function () {
+
+    const drawer_id = document.getElementById("drawer_id_select").value;
+    const register_id = document.getElementById("register_select").value;
+    const location = document.getElementById("Location").value;
+    const cashier = document.getElementById("assign_cashier").value;
+    const starting_float = document.getElementById("starting_cash_assign").value;
+    const notes = document.getElementById("notes_assign").value;
+
+    if (!drawer_id || !register_id || !location || !cashier || !starting_float) {
+        alert("Please fill in all required fields");
+        return;
+    }
+
+    const payload = {
+        drawer_id,
+        register: register_id,
+        assigned_to : location, 
+        cashier,
+        start_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        starting_cash: starting_float,
+        notes
+    };
+
+    try {
+        const response = await fetch("/employee-drawer/history", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // alert("Drawer assigned successfully");
+            toggleModal('modal-assign-drawer');
+            window.location.reload();
+        } else {
+            console.error(result);
+            alert(result.message || "Failed to assign drawer");
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong");
+    }
+
+});
+
+
+document.getElementById("transafer_drawer").addEventListener("click", async function (e) {
+    e.preventDefault();
+
+    if (!currentDrawerData || !currentDrawerData.id) {
+        alert("No drawer selected");
+        return;
+    }
+
+    const newCashier = document.querySelector("#modal-transfer-drawer select").value;
+
+    if (!newCashier) {
+        alert("Please select a cashier");
+        return;
+    }
+
+    const id = currentDrawerData.id;
+
+    try {
+            const response = await fetch(`/employee-drawer/transfer/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    cashier: newCashier
+                })
+            });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // alert("Cashier transferred successfully");
+
+            toggleModal('modal-transfer-drawer');
+
+  
+            location.reload();
+
+        } else {
+            console.error(result);
+            alert(result.message || "Transfer failed");
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong");
+    }
+});
+
+
+document.getElementById("cash-in-out").addEventListener("click", () => {
+    window.location.href = "/export";
+});
+
+document.getElementById("balance_sheet").addEventListener("click", function () {
+    window.location.href = "/balance-sheet-export";
+});
+
+document.getElementById("income_revenue").addEventListener("click", function () {
+    window.location.href = "/income-statement-export";
+});
+
+document.getElementById("btn_pdf").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-pdf";
+});
+
+document.getElementById("btn_excel").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-excel";
+});
+
+
+document.getElementById("btn_csv").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-csv";
+});
+
+    </script>
+</body>
+</html>

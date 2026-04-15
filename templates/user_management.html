@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Monitoring - Blue Ocean Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 flex h-screen text-gray-800 font-sans overflow-hidden">
+
+    <div id="sidebar-container"></div>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+
+        <header
+            class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 z-20">
+            <div class="flex items-center">
+                <button id="open-sidebar-btn"
+                    class="lg:hidden mr-4 text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3 relative">
+                <button onclick="toggleModal('financial-modal')"
+                    class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg> Financial Reports
+                </button>
+                <button onclick="toggleModal('export-modal')"
+                    class="hidden md:flex px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg> Export Data
+                </button>
+                <!-- <button onclick="toggleModal('record-modal')"
+                    class="px-3 sm:px-4 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 flex items-center hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg> Record Data
+                </button> -->
+
+                <button id="profile-btn" class="flex items-center ml-2 focus:outline-none">
+                    <img src="https://lh3.googleusercontent.com/a/ACg8ocIr0M-1_ZpBBsXKEb-6dPS2C-nF8UrhGbrkaT1gsTNAcIQfjC5H=s360-c-no"
+                        alt="User" class="w-8 h-8 rounded-full border border-gray-200 object-cover">
+                    <svg class="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div id="profile-dropdown"
+                    class="hidden absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                    <div class="px-4 py-2 border-b border-gray-100">
+                        <p class="text-sm font-medium text-gray-800">Arjunren Von</p>
+                        <p class="text-xs text-gray-500">arjunrenvon@gmail.com</p>
+                    </div>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Billing</a>
+                    <div class="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                            onclick="toggleModal('logout-modal'); document.getElementById('profile-dropdown').classList.add('hidden')"
+                            class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log
+                            out</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
+                    <p class="text-gray-500 mt-1">Manage employee access, roles, and status</p>
+                </div>
+                <button onclick="openAddUserModal()"
+                    class="bg-[#0b1120] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 shadow-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg> Add Employee
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">Total Employees</p>
+                    <h3 id="kpi-total" class="text-2xl font-bold text-gray-800">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-blue-200 bg-blue-50/30 shadow-sm">
+                    <p class="text-sm text-blue-600 mb-1 font-medium">Active / Online Now</p>
+                    <h3 id="kpi-active" class="text-2xl font-bold text-blue-700">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">Managers</p>
+                    <h3 id="kpi-mgr" class="text-2xl font-bold text-gray-800">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">Cashiers</p>
+                    <h3 id="kpi-csh" class="text-2xl font-bold text-gray-800">0</h3>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+                <input type="text" id="search-input" placeholder="Search by name or ID..."
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm w-72 focus:outline-none focus:border-blue-500 shadow-sm bg-white">
+                <select id="filter-role"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none shadow-sm bg-white">
+                    <option value="all">All Roles</option>
+                    <option value="manager">Manager</option>
+                    <option value="cashier">Cashier</option>
+                    <option value="waiter">Waiter</option>
+                </select>
+            </div>
+
+            <div class="overflow-x-auto bg-white rounded-xl border border-gray-100 shadow-sm mb-8">
+                <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                    <thead class="bg-gray-50 text-gray-500 font-medium">
+                        <tr>
+                            <th class="px-6 py-4 whitespace-nowrap">Employee</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Role & Dept</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Status</th>
+                            <!-- <th class="px-6 py-4 whitespace-nowrap">Last Login</th> -->
+                            <th class="px-6 py-4 whitespace-nowrap text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body" class="divide-y divide-gray-100">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="user-modal"
+        class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden flex items-center justify-center z-50 transition-opacity p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h3 id="user-modal-title" class="text-xl font-bold text-gray-800 mb-4">Add Employee</h3>
+            <form id="user-form" onsubmit="saveUser(event)">
+                <input type="hidden" id="is-editing-user" value="false">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                        <input type="text" id="user-emp-id" required
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="text" id="user-password" required
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input type="text" id="user-fname" required
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input type="text" id="user-lname" required
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="user-email"
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                        <input type="text" id="user-contact"
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <select id="user-position"
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                            <option value="Cashier">Cashier</option>
+                            <option value="Waiter">Waiter</option>
+                            <option value="Manager">Manager</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="user-status"
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                            <option value="Active">Active</option>
+                            <option value="Offline">Offline</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                        <select id="user-department"
+                            class="user-input w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 disabled:bg-gray-100 bg-gray-50/50">
+                            <option value="Floating Bar">Floating Bar</option>
+                            <option value="Mainland">Mainland</option>
+                            <option value="Skydeck">Skydeck</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="toggleModal('user-modal')"
+                        class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition">Cancel</button>
+                    <button type="button" id="btn-enable-edit" onclick="enableEditMode()"
+                        class="hidden px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition">Enable
+                        Editing</button>
+                    <button type="submit" id="btn-save-user"
+                        class="px-4 py-2 bg-[#0b1120] hover:bg-gray-800 text-white font-medium rounded-lg transition">Save
+                        Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="revoke-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 text-center relative">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Revoke Access?</h3>
+            <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete or deactivate this user? This action
+                will remove their system access immediately.</p>
+            <input type="hidden" id="revoke-user-id">
+            <div class="flex justify-center gap-3">
+                <button onclick="toggleModal('revoke-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 w-full focus:outline-none">Cancel</button>
+                <button onclick="confirmRevoke()"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 w-full">Revoke</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="financial-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('financial-modal')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Financial Reports</h2>
+            <p class="text-sm text-gray-500 mb-6">Select a financial report to generate and view</p>
+
+            <div class="space-y-4">
+                <div
+                    class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                            </svg></div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Cash-in/Cash-out Flow</h3>
+                            <p class="text-xs text-gray-500">Track all cash inflows and outflows for the selected period
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "cash-in-out">Generate</button>
+                </div>
+                <div
+                    class="border border-purple-100 rounded-lg p-4 flex items-center justify-between hover:bg-purple-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-purple-50 text-purple-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg></div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Balance Sheet</h3>
+                            <p class="text-xs text-gray-500">View assets, liabilities, and equity at a specific point in
+                                time</p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "balance_sheet">Generate</button>
+                </div>
+                <div
+                    class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg></div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Income Statement</h3>
+                            <p class="text-xs text-gray-500">Review revenue, expenses, and profit/loss for the period
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "income_revenue">Generate</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Reports are generated for the current month by default</span>
+                <button onclick="toggleModal('financial-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 relative">
+            <button onclick="toggleModal('export-modal')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Export Data</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose a format to download your dashboard data</p>
+
+            <div class="space-y-4">
+                <div
+                    class="border border-red-100 rounded-lg p-4 flex items-center justify-between hover:bg-red-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-red-50 text-red-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                </path>
+                            </svg></div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">PDF Document <span
+                                    class="text-xs text-gray-400 font-normal">(.pdf)</span></h3>
+                            <p class="text-xs text-gray-500">Export as a formatted PDF file for reports and
+                                presentations</p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_pdf">Download</button>
+                </div>
+                <div
+                    class="border border-green-100 rounded-lg p-4 flex items-center justify-between hover:bg-green-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-green-50 text-green-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg></div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Excel Spreadsheet <span
+                                    class="text-xs text-gray-400 font-normal">(.xlsx)</span></h3>
+                            <p class="text-xs text-gray-500">Export as XLSX for data analysis and manipulation in Excel
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_excel">Download</button>
+                </div>
+                <div
+                    class="border border-blue-100 rounded-lg p-4 flex items-center justify-between hover:bg-blue-50/50 transition cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 text-blue-500 p-2 rounded-lg mr-4"><svg class="w-6 h-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg></div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">CSV File <span
+                                    class="text-xs text-gray-400 font-normal">(.csv)</span></h3>
+                            <p class="text-xs text-gray-500">Export as CSV for universal compatibility and data import
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#0b1120] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800"id = "btn_csv">Download</button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Export includes all current dashboard data</span>
+                <button onclick="toggleModal('export-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="record-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 relative">
+            <button onclick="toggleModal('record-modal')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Record Daily Data</h2>
+            <p class="text-sm text-gray-500 mb-4">Record sales or non-sales data for your restaurant</p>
+
+            <div class="flex bg-gray-100 p-1 rounded-full mb-6">
+                <button type="button"
+                    class="flex-1 bg-white text-blue-600 shadow-sm py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    Sales Record
+                </button>
+                <button type="button"
+                    class="flex-1 text-gray-500 hover:text-gray-700 py-2 rounded-full text-sm font-medium flex items-center justify-center focus:outline-none">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    Non-Sales Record
+                </button>
+            </div>
+
+            <form class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+                        <input type="text" placeholder="e.g., Grilled Salmon"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                        <select
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.5rem_center]">
+                            <option>Select category</option>
+                            <option>Food</option>
+                            <option>Beverage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity Sold *</label>
+                        <div class="relative">
+                            <input type="number" placeholder="e.g., 50"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center pr-2">
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 15l7-7 7 7"></path>
+                                </svg>
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Price per Unit (₱) *</label>
+                        <div class="relative">
+                            <input type="number" step="0.01" placeholder="e.g., 28.99"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center pr-2">
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 15l7-7 7 7"></path>
+                                </svg>
+                                <svg class="w-3 h-3 text-gray-600 cursor-pointer" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <div class="relative">
+                        <input type="text" value="03 / 31 / 2026"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-gray-800">
+                        <svg class="w-4 h-4 text-gray-400 absolute right-3 top-2.5" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex justify-between items-center mt-2">
+                    <span class="text-sm text-gray-600">Total Revenue:</span>
+                    <span class="text-xl font-bold text-blue-600">₱0.00</span>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('record-modal')"
+                        class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition focus:outline-none">Record
+                        Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="logout-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 text-center relative">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><svg
+                    class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                    </path>
+                </svg></div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Ready to Leave?</h3>
+            <p class="text-sm text-gray-500 mb-6">Select "Log out" below to end your session.</p>
+            <div class="flex justify-center gap-3">
+                <button onclick="toggleModal('logout-modal')"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 w-full focus:outline-none">Cancel</button>
+                <a href="index.html"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 w-full block text-center">Log
+                    out</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sidebar.js"></script>
+    <script>
+        let allUsers = [];
+
+        function toggleModal(modalID) {
+            const m = document.getElementById(modalID);
+            if (m) m.classList.toggle('hidden');
+        }
+
+        function openAddUserModal() {
+            document.getElementById('user-form').reset();
+            document.getElementById('user-modal-title').innerText = "Add New Employee";
+            document.getElementById('is-editing-user').value = "false";
+
+            document.querySelectorAll('.user-input').forEach(input => input.disabled = false);
+            document.getElementById('btn-enable-edit').classList.add('hidden');
+            document.getElementById('btn-save-user').classList.remove('hidden');
+
+            toggleModal('user-modal');
+        }
+
+        function viewUser(empId) {
+            const emp = allUsers.find(e => e.id === empId);
+            if (!emp) return;
+
+            document.getElementById('user-modal-title').innerText = "View Employee";
+            document.getElementById('is-editing-user').value = "true";
+
+            let parts = emp.name.split(' ');
+            document.getElementById('user-emp-id').value = emp.id;
+            document.getElementById('user-fname').value = emp.firstName;
+            document.getElementById('user-lname').value = emp.lastName || '';
+            document.getElementById('user-position').value = emp.role;
+            document.getElementById('user-status').value = emp.status;
+            document.getElementById('user-department').value = emp.department;
+            document.querySelectorAll('.user-input').forEach(input => input.disabled = true);
+            document.getElementById('btn-enable-edit').classList.remove('hidden');
+            document.getElementById('btn-save-user').classList.add('hidden');
+            document.getElementById("user-contact").value  = emp.contact_number || '';
+            document.getElementById("user-email").value = emp.email || '';
+            document.getElementById("user-password").value = emp.password || ''; 
+
+            toggleModal('user-modal');
+        }
+
+        function enableEditMode() {
+            document.getElementById('user-modal-title').innerText = "Edit Employee";
+            document.querySelectorAll('.user-input').forEach(input => {
+                if (input.id !== 'user-emp-id') input.disabled = false;
+            });
+            document.getElementById('btn-enable-edit').classList.add('hidden');
+            document.getElementById('btn-save-user').classList.remove('hidden');
+        }
+
+        function saveUser(e) {
+            e.preventDefault();
+
+            const isEditing = document.getElementById("is-editing-user").value === "true";
+            const employeeId = document.getElementById("user-emp-id").value;
+
+            const employeeData = {
+                employee_id: employeeId,
+                firstName: document.getElementById('user-fname').value,
+                lastName: document.getElementById('user-lname').value,
+                position: document.getElementById('user-position').value,
+                status: document.getElementById('user-status').value,
+                department: document.getElementById('user-department').value,
+                contact_number: document.getElementById("user-contact").value,
+                email: document.getElementById("user-email").value,
+                password: document.getElementById("user-password").value,
+                starting_cash: 0,
+                cash_variance: 0
+            };
+
+            let url = "/employee";
+            let method = "POST";
+
+        
+            if (isEditing) {
+                url = `/employee/${employeeId}`;
+                method = "PUT";
+            }
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(employeeData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    // alert(isEditing ? "Employee Updated" : "Employee Created");
+                    toggleModal('user-modal');
+                    location.reload();
+                } else {
+                    alert("Error: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Failed to connect to server");
+            });
+        }
+
+        function openRevokeModal(empId) {
+            document.getElementById('revoke-user-id').value = empId;
+            toggleModal('revoke-modal');
+        }
+
+        function confirmRevoke() {
+            const empId = document.getElementById('revoke-user-id').value;
+
+            fetch(`employee/${empId}`, {
+                method : "DELETE"
+            }).then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    // alert("Employee deleted successfully");
+                    location.reload();
+                    // Remove from UI
+                    allUsers = allUsers.filter(u => u.id !== empId);
+                    renderGrid(allUsers);
+
+                    toggleModal('revoke-modal');
+                } else {
+                    alert("Error: " + data.message);
+                }
+            }).catch(err =>  {
+                console.error(err);
+                alert("FAILED TO DELETE EMPLOYEE")
+            });
+
+            // allUsers = allUsers.filter(u => u.id !== empId);
+            // renderGrid(allUsers);
+            // toggleModal('revoke-modal');
+        }
+document.addEventListener('DOMContentLoaded', () => {
+
+    const profileBtn = document.getElementById('profile-btn');
+    const profileDropdown = document.getElementById('profile-dropdown');
+
+    if (profileBtn && profileDropdown) {
+        profileBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            profileDropdown.classList.toggle('hidden'); 
+        });
+
+        document.addEventListener('click', (e) => { 
+            if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) { 
+                profileDropdown.classList.add('hidden'); 
+            } 
+        });
+    }
+
+    function loadUsers() {
+        fetch('/api/users')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('kpi-total').innerText = data.kpis.total_users;
+                document.getElementById('kpi-active').innerText = data.kpis.active_now;
+                document.getElementById('kpi-mgr').innerText = data.kpis.managers;
+                document.getElementById('kpi-csh').innerText = data.kpis.cashiers;
+
+                allUsers = data.users;
+                renderGrid(allUsers);
+            })
+            .catch(err => console.error(err));
+    }
+
+    // Initial load
+    loadUsers();
+
+    // Auto refresh every 5 seconds
+    setInterval(loadUsers, 5000);
+
+    document.getElementById('search-input').addEventListener('input', filterData);
+    document.getElementById('filter-role').addEventListener('change', filterData);
+});
+
+        function renderGrid(data) {
+            const tableBody = document.getElementById('users-table-body');
+            tableBody.innerHTML = '';
+
+            // Optional: Handle empty state
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No employees found matching your criteria.</td></tr>`;
+                return;
+            }
+
+            data.forEach(user => {
+                tableBody.innerHTML += `
+            <tr class="hover:bg-gray-50 transition group">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mr-3 shrink-0 border border-blue-100">
+                            ${user.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">${user.name}</div>
+                            <div class="text-xs text-gray-400 font-mono tracking-wider">${user.id}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-gray-800 font-medium">${user.role}</div>
+                    <div class="text-xs text-gray-500">${user.department}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold rounded-md ${user.status_color}">
+                        ${user.status}
+                    </span>
+                </td>
+                
+                
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button onclick="viewUser('${user.id}')" class="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg hover:bg-white hover:shadow-sm transition">
+                            Edit
+                        </button>
+                        <button onclick="openRevokeModal('${user.id}')" class="px-3 py-1.5 border border-red-100 text-red-600 bg-red-50 text-xs font-medium rounded-lg hover:bg-red-100 transition">
+                            Revoke
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+            });
+        }
+
+        // <!-- <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-sm"> ${user.last_login}</td> -->
+        function filterData() {
+            const s = document.getElementById('search-input').value.toLowerCase();
+            const r = document.getElementById('filter-role').value.toLowerCase();
+            const filtered = allUsers.filter(u => {
+                const matchS = u.name.toLowerCase().includes(s) || u.id.toLowerCase().includes(s);
+                const matchR = r === 'all' || u.role.toLowerCase() === r;
+                return matchS && matchR;
+            });
+            renderGrid(filtered);
+        }
+
+        
+document.getElementById("cash-in-out").addEventListener("click", () => {
+    window.location.href = "/export";
+});
+
+document.getElementById("balance_sheet").addEventListener("click", function () {
+    window.location.href = "/balance-sheet-export";
+});
+
+document.getElementById("income_revenue").addEventListener("click", function () {
+    window.location.href = "/income-statement-export";
+});
+
+document.getElementById("btn_pdf").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-pdf";
+});
+
+document.getElementById("btn_excel").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-excel";
+});
+
+
+document.getElementById("btn_csv").addEventListener("click", function () {
+    window.location.href = "/export-dashboard-csv";
+});
+    </script>
+</body>
+
+</html>
