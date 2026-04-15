@@ -467,7 +467,7 @@ def export_dashboard_pdf():
 @app.route("/export-dashboard-excel")
 def export_dashboard_excel():
 
-    dashboard = build_dashboard_data()  # ✅ FIXED (LIVE DATA)
+    dashboard = build_dashboard_data() 
 
     wb = Workbook()
 
@@ -628,6 +628,70 @@ def export_dashboard_csv():
                 st.get("role"),
                 st.get("guests")
             ])
+
+    return send_file(file_path, as_attachment=True)
+
+@app.route("/export-cash-operations-excel")
+def export_cash_operations_excel():
+
+    data = cash_operation_data_transaction()  # 
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Cash Operations"
+
+    # =========================
+    # HEADERS
+    # =========================
+    headers = ["Timestamp", "Register", "Type", "Reference", "Amount", "Cashier", "Notes"]
+    ws.append(headers)
+
+    # =========================
+    # WRITE DATA
+    # =========================
+    for row in data:
+        ws.append([
+            row.get("timestamp"),
+            row.get("register"),
+            row.get("type"),
+            row.get("reference"),
+            row.get("amount"),  # already formatted ₱
+            row.get("cashier"),
+            row.get("notes")
+        ])
+
+    # =========================
+    # STYLE (BOLD HEADER)
+    # =========================
+    from openpyxl.styles import Font
+    bold = Font(bold=True)
+
+    for cell in ws[1]:
+        cell.font = bold
+
+    # =========================
+    # AUTO COLUMN WIDTH
+    # =========================
+    from openpyxl.utils import get_column_letter
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = get_column_letter(col[0].column)
+
+        for cell in col:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except:
+                pass
+
+        ws.column_dimensions[col_letter].width = max_length + 3
+
+    # =========================
+    # SAVE FILE
+    # =========================
+    file_path = "cash_operations.xlsx"
+    wb.save(file_path)
 
     return send_file(file_path, as_attachment=True)
 # FLOATING_API_URL_EMPLOYEES = "http://10.104.120.221:5000/floatingbar/employees"
@@ -2979,6 +3043,7 @@ def reconcile_drawer():
         }), 500
 
 def cash_operation_data_transaction():
+
     try:
         mainland = GLOBAL_DATA.get("mainland_transactions", [])
         floating = GLOBAL_DATA.get("floating_transactions", [])
@@ -3018,10 +3083,12 @@ def cash_operation_data_transaction():
             return None
 
         # ----------------------------
-        # MAINLAND
+        # MAINLAND (FIXED FILTER)
         # ----------------------------
         for t in mainland:
-            if (t.get("status") or "").lower() != "billout":
+
+        
+            if not t.get("total_net_billing"):
                 continue
 
             dt = parse_datetime_safe(t.get("created_at"))
@@ -3036,14 +3103,14 @@ def cash_operation_data_transaction():
                 "amount": float(t.get("total_net_billing") or 0),
                 "cashier": t.get("attended_by") or "N/A",
                 "notes": t.get("notes") or "N/A",
-              
             })
 
         # ----------------------------
         # FLOATING BAR
         # ----------------------------
         for t in floating:
-            if (t.get("status") or "").lower() != "billout":
+
+            if not t.get("total_net_billing"):
                 continue
 
             dt = parse_datetime_safe(t.get("created_at"))
@@ -3058,20 +3125,20 @@ def cash_operation_data_transaction():
                 "amount": float(t.get("total_net_billing") or 0),
                 "cashier": t.get("attended_by") or "N/A",
                 "notes": t.get("notes") or "N/A",
-               
             })
 
         # ----------------------------
-        # SORT + LIMIT
+        # SORT + LIMIT (LAST 50)
         # ----------------------------
         combined.sort(key=lambda x: x["timestamp"], reverse=True)
-        last_10 = combined[:10]
+        last_50 = combined[:50]
 
         # ----------------------------
         # FORMAT OUTPUT
         # ----------------------------
         result = []
-        for t in last_10:
+
+        for t in last_50:
             result.append({
                 "timestamp": t["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
                 "register": t["register"],
