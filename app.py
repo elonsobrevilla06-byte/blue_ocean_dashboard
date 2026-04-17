@@ -39,10 +39,10 @@ from email.utils import parsedate_to_datetime
 
 app = Flask(__name__)
 
-FLOATING_API_URL_EMPLOYEES = "http://10.104.120.221:5000/floatingbar/employees"
-FLOATING_API_URL_TRANSACTION = "http://10.104.120.221:5000/floatingbar/transaction"
-FLOATING_API_URL_TABLES = "http://10.104.120.221:5000/floatingbar/table_management"
-FLOATING_API_URL_MENU = "http://10.104.120.221:5000/floatingbar/menu"
+FLOATING_API_URL_EMPLOYEES = "http://floatingbar.bigboysautomation.com/floatingbar/employees"
+FLOATING_API_URL_TRANSACTION = "http://floatingbar.bigboysautomation.com/floatingbar/transaction"
+FLOATING_API_URL_TABLES = "http://floatingbar.bigboysautomation.com/floatingbar/table_management"
+FLOATING_API_URL_MENU = "http://floatingbar.bigboysautomation.com/floatingbar/menu"
 
 
 # -------------------
