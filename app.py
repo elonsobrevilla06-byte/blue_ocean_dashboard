@@ -734,7 +734,7 @@ def load_all_data():
 
     response_float_employee = requests.get(FLOATING_API_URL_EMPLOYEES)
     GLOBAL_DATA["floating_employees"] = response_float_employee.json()
-    print("Data refreshed")
+    # print("Data refreshed")
 
 def auto_refresh():
     while True:
