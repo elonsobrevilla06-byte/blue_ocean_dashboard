@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="https://blueoceanbar.com/wp-content/uploads/2025/09/BOB-Logo_White-150x150.png" sizes="32x32">
+    <title>Blue Ocean Bar POS</title>
+</head>
+
+<body
+    class="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-100 via-white to-blue-50 h-screen flex justify-center items-center overflow-hidden">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <div
+        class="relative w-full max-w-sm p-8 rounded-2xl border border-white/80 bg-white/60 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] fade-in mx-4">
+
+        <div class="text-center mb-8">
+            <div
+                class="w-[100px] h-[100px] bg-gradient-to-r from-cyan-500 to-[#1cb2b6] hover:from-cyan-400 hover:to-[#1cb2b6] rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
+
+                <img 
+                    src="https://blueoceanbar.com/wp-content/uploads/2025/09/BOB-White-shadow.png" 
+                    alt="Logo" 
+                    class="w-[75%] h-[75%] object-contain"
+                >
+        </div>
+            <h2 class="text-xl font-bold text-slate-800 tracking-wide">Blue Ocean Bar</h2>
+            <p class="text-slate-500 text-sm ">POS System</p>
+        </div>
+
+        <form onsubmit="return false" class="space-y-5">
+
+            <div class="relative group">
+                <label for="username"
+                    class="block mb-2 text-xs font-semibold text-[#1cb2b6] uppercase tracking-wider">Username</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-400 group-focus-within:text-[#1cb2b6] transition-colors"
+                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" id="username" name="username" placeholder="Enter ID"
+                        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1cb2b6] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm text-sm">
+                </div>
+            </div>
+
+            <div class="relative group">
+                <label for="password"
+                    class="block mb-2 text-xs font-semibold text-[#1cb2b6] uppercase tracking-wider">Password</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-400 group-focus-within:text-[#1cb2b6] transition-colors"
+                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="password" id="password" name="password" placeholder="••••••••"
+                        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1cb2b6] focus:ring-2 focus:ring-[blue-100] transition-all shadow-sm text-sm">
+                </div>
+            </div>
+
+            <button type="button" onclick="loginUser()"
+                class="w-full mt-6 py-3.5 bg-gradient-to-r from-cyan-500 to-[#1cb2b6] hover:from-cyan-400 hover:to-[#1cb2b6] text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white">
+                Access Terminal
+            </button>
+        </form>
+        <p class="text-center text-sm text-slate-400 mt-6">
+            Powered by <span class="font-semibold text-[#1cb2b6]">DxBBA</span>
+        </p>
+    </div>
+</body>
+<script>
+
+    async function loginUser(){
+        const employee_id = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        try{
+            const response = await fetch("{{url_for('login_route')}}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    employee_id: employee_id,
+                    password: password
+                })
+
+
+            });
+            const result = await response.json();
+
+            if(!response.ok){
+                alert(result.message || "Login Failed");
+                return;
+            }
+            console.log(result);
+     
+
+            // After login
+            localStorage.setItem("access_token", result.token);
+            window.location.href = "/dashboard";  // normal page load
+                
+           
+
+        }catch (error){
+            console.error(error);
+            alert("Server error. Please try again.");
+        }
+    }
+
+
+
+</script>
+
+</html>

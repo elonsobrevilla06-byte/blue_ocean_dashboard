@@ -10,7 +10,7 @@ const sidebarHTML = `
         </div>
         <div class="p-4 flex-1 overflow-y-auto">
             <p class="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider">Dashboard</p>
-            <a href="/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-6 transition-colors">
+            <a href="/dashboard" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-6 transition-colors">
                 <svg class="sidebar-icon w-5 h-5 mr-3 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                 Dashboard
             </a>

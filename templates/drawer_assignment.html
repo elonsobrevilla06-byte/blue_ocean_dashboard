@@ -36,10 +36,26 @@
                     <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Record Data
                 </button> -->
                 
-                <button id="profile-btn" class="flex items-center ml-2 focus:outline-none">
+                <button id="profile-btn" class="hidden items-center ml-2 focus:outline-none">
                     <img src="https://lh3.googleusercontent.com/a/ACg8ocIr0M-1_ZpBBsXKEb-6dPS2C-nF8UrhGbrkaT1gsTNAcIQfjC5H=s360-c-no" alt="User" class="w-8 h-8 rounded-full border border-gray-200 object-cover">
                     <svg class="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
+                <button class="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors focus:outline-none"
+                        onclick="window.location.href='/logout'">
+
+                    <span class="text-sm font-medium">Logout</span>
+
+                    <svg class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
+                
 
                 <div id="profile-dropdown" class="hidden absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
                     <div class="px-4 py-2 border-b border-gray-100">

@@ -1,10 +1,13 @@
-from flask import Flask, render_template, jsonify, request, send_file
+from flask import Flask, request, render_template, jsonify, session,url_for,flash, redirect, send_file
 import copy
 from Model_Mainland_monitoring.mainland_transaction_model import get_mainland_transaction, get_transaction_reserved
 from Model_Mainland_monitoring.mainland_employee_management_model import get_mainland_employee, get_mainland_employee_by_emp_id, post_mainland_employee, put_mainland_employee_by_id, delete_mainland_employee
 from Model_Mainland_monitoring.mainland_drawer_history import get_employee_drawer_history, put_employee_drawer_history, post_employee_drawer_history, end_employee_drawer_history_shift, transfer_drawer_cashier, put_employee_drawer_cash_current_balance, put_employee_drawer_safe_register, get_active_employee_drawer_history, put_employee_drawer_reconcile
 from Model_Mainland_monitoring.register_model import get_register, post_register, put_register_by_id, delete_register_by_id
 from Model_Mainland_monitoring.cash_in_out import get_cash_in_out, post_cash_in_out
+
+from db_models.mainland_models.loging_and_verfication_model import mainland_employee_login, verify_employee_mainland, floatingbar_employee_login, verify_employee_floatingbar
+
 import requests
 import json
 from collections import defaultdict
@@ -33,11 +36,16 @@ from reportlab.lib.pagesizes import A4
 
 import csv
 from email.utils import parsedate_to_datetime
+import os
 
+from dotenv import load_dotenv
 
+load_dotenv()
 
 
 app = Flask(__name__)
+
+app.secret_key = os.getenv("api_secret_key")
 
 FLOATING_API_URL_EMPLOYEES = "http://floatingbar.bigboysautomation.com/floatingbar/employees"
 FLOATING_API_URL_TRANSACTION = "http://floatingbar.bigboysautomation.com/floatingbar/transaction"
@@ -1536,10 +1544,51 @@ DASHBOARD_DATA = {
     }
 }
 
-@app.route('/')
+@app.route("/")
+def login():
+    session.clear()
+    return render_template("index.html")
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+@app.route("/mainland/login", methods=["POST"])
+def login_route():
+    # Get data from JSON or form
+    data = request.get_json() if request.is_json else request.form.to_dict()
+    
+    employee_id = data.get("employee_id")
+    password = data.get("password")
+
+    if not employee_id or not password:
+        return jsonify({"success": False, "message": "Invalid Credentials"}), 400
+
+    # Replace this with your real login function
+    user = mainland_employee_login(employee_id, password)
+    
+    if not user or user.get('position')=='waiter' or user.get('position') == 'cashier':
+        return jsonify({"success": False, "message": "Invalid User Access"}), 401
+
+    # Store user info in session instead of creating JWT
+    session['employee_id'] = user["employee_id"]
+    session['position'] = user.get("position", "staff")
+    session['name'] = f"{user.get('firstName')} {user.get('lastName')}"
+
+    return jsonify({
+        "success": True,
+        "position": session['position'],
+        "name": session['name']
+    }), 200
+
+
+@app.route('/dashboard')
 def index():
     current_date = datetime.now().strftime("%B %Y")
-    return render_template('dashboard.html', current_date=current_date)
+    
+    return render_template('dashboard.html', current_date=current_date, session=session)
 
 @app.route('/api/data')
 def get_data():
@@ -5353,7 +5402,7 @@ def get_monthly_food_beverages_menu():
                 status_color = "text-green-700 bg-green-100"
 
             result.append({
-                "id": f"ITM-{m.get("menu_id")}",
+                "id": f"ITM-{m.get('menu_id')}",
                 "name": name,
                 "category": category,
                 "type": main_type,
@@ -5476,7 +5525,7 @@ def get_weekly_food_beverages_menu():
                 status_color = "text-green-700 bg-green-100"
 
             result.append({
-                "id": f"ITM-{m.get("menu_id")}",
+                "id": f"ITM-{m.get('menu_id')}",
                 "name": name,
                 "category": category,
                 "type": main_type,
@@ -5598,7 +5647,7 @@ def get_today_food_beverages_menu():
                 status_color = "text-green-700 bg-green-100"
 
             result.append({
-                "id": f"ITM-{m.get("menu_id")}",
+                "id": f"ITM-{m.get('menu_id')}",
                 "name": name,
                 "category": category,
                 "type": main_type,
@@ -6024,4 +6073,4 @@ def get_user_data():
         "users": get_employees_data_users()
     })
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8002)
