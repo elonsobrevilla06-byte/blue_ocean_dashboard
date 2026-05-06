@@ -1479,7 +1479,6 @@ def get_mainland_weekly_data():
         "data": [weekly_totals[day] for day in days_order]
     }
 
-
 def get_floatingbar_transaction_kpis_data():
     try:
         transactions = GLOBAL_DATA["floating_transactions"]
@@ -1514,6 +1513,7 @@ def get_floatingbar_transaction_kpis_data():
             for fmt in (
                 "%Y-%m-%d %H:%M:%S",
                 "%Y-%m-%d",
+                "%Y-%m-%dT%H:%M:%S",
                 "%a, %d %b %Y %H:%M:%S %Z",
             ):
                 try:
@@ -1524,63 +1524,78 @@ def get_floatingbar_transaction_kpis_data():
             return None
 
         # -----------------------------
-        # GET PAX
+        # ONLY MAIN GUEST PAX
         # -----------------------------
-        def get_pax(t):
-            pax_count = 0
+        def get_pax(transaction):
+            main_guest = transaction.get("main_guest_information")
 
-            main_guest = t.get("main_guest_information")
-            if main_guest:
-                if isinstance(main_guest, str):
+            if not main_guest:
+                return 0
+
+            if isinstance(main_guest, str):
+                try:
                     main_guest = json.loads(main_guest)
-                pax_count += 1
+                except:
+                    return 0
 
-            add_on = t.get("add_on_guest")
-            if add_on:
-                if isinstance(add_on, str):
-                    add_on = json.loads(add_on)
-                if isinstance(add_on, list):
-                    pax_count += len(add_on)
+            try:
+                return int(main_guest.get("pax", 0))
+            except:
+                return 0
 
-            return pax_count
-
+        # -----------------------------
+        # LOOP TRANSACTIONS
+        # -----------------------------
         for t in transactions:
-            dt = parse_date(t.get("transaction_date") or t.get("created_at"))
+
+            dt = parse_date(t.get("transaction_date") or t.get("created_at") or t.get("confirmed_at"))
             if not dt:
                 continue
 
             year = dt.year
+
             amount = float(t.get("total_net_billing") or 0)
             status = (t.get("status") or "").lower()
+
             pax = get_pax(t)
 
+            # DEBUG
+
+
+            # -----------------------------
             # CURRENT YEAR
+            # -----------------------------
             if year == current_year:
                 total_revenue += amount
 
                 if status == "cancelled":
                     cancelled_count += 1
 
-                if status != "billout":
+                if status == "confirmed":
                     active_customers += pax
 
+            # -----------------------------
             # LAST YEAR
+            # -----------------------------
             elif year == last_year:
                 last_total_revenue += amount
 
                 if status == "cancelled":
                     last_cancelled_count += 1
 
-                if status != "billout":
+                if status == "confirmed":
                     last_active_customers += pax
 
+        # -----------------------------
+        # TREND FUNCTION
+        # -----------------------------
         def get_trend(current, previous):
             if previous == 0:
                 return "0%", True
 
             change = ((current - previous) / previous) * 100
             return f"{change:.1f}%", change >= 0
-            
+
         revenue_trend, revenue_positive = get_trend(total_revenue, last_total_revenue)
         customers_trend, customers_positive = get_trend(active_customers, last_active_customers)
         cancelled_trend, cancelled_positive = get_trend(cancelled_count, last_cancelled_count)
@@ -1623,7 +1638,6 @@ def get_floatingbar_transaction_kpis_data():
             "cancelled": {"value": "0", "trend": "0%", "positive": False},
             "net_sales": {"value": "₱0", "trend": "0%", "positive": True}
         }
-
 def get_floatingbar_weekly_data():
     try:
         # print("calling api floating transaction")
