@@ -587,7 +587,7 @@ def export_dashboard_excel():
         return []
 
     # =========================
-    # DATE PARSER (FIXED GMT)
+    # DATE PARSER
     # =========================
     def parse_date(dt):
         if not dt:
@@ -638,54 +638,55 @@ def export_dashboard_excel():
         })
 
     # =========================
-    # 🔥 DISCOUNT (FIXED PROPERLY)
+    # DISCOUNT (UNCHANGED)
     # =========================
     def get_discount(tx):
-        total = 0
-
         main = safe_json(tx.get("main_guest_information"))
         addon = safe_json(tx.get("add_on_guest"))
 
-        # MAIN
+        total = 0
         if isinstance(main, dict):
-            try:
-                total += float(main.get("discount_amount") or 0)
-            except:
-                total += 0
-
-        # ADDON
+            total += float(main.get("discount_amount") or 0)
         if isinstance(addon, dict):
-            try:
-                total += float(addon.get("discount_amount") or 0)
-            except:
-                total += 0
+            total += float(addon.get("discount_amount") or 0)
 
         return total
 
     # =========================
-    # FIXED DATE KEY (IMPORTANT FIX)
+    # ITEM SOLD (🔥 RESTORED FROM OLD VERSION)
     # =========================
-    def get_date(tx):
-        # use transactiondate FIRST (your sample has it)
-        raw = tx.get("transactiondate") or tx.get("created_at")
-        dt = parse_date(raw)
-        return dt.date() if dt else None
+    def get_inventory(txs):
+        inventory = defaultdict(lambda: {"qty": 0, "sales": 0})
+
+        for t in txs:
+            for s in get_services(t):
+                item = s.get("item")
+                qty = float(s.get("qty") or 1)
+                price = float(s.get("price") or 0)
+
+                inventory[item]["qty"] += qty
+                inventory[item]["sales"] += qty * price
+
+        return inventory
 
     # =========================
-    # FILTER HELPERS
+    # DATE HELPERS (FIXED)
     # =========================
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
 
+    def get_date(tx):
+        raw = tx.get("transactiondate") or tx.get("created_at")
+        dt = parse_date(raw)
+        return dt.date() if dt else None
+
     def is_today(tx):
-        d = get_date(tx)
-        return d == today
+        return get_date(tx) == today
 
     def is_yesterday(tx):
-        d = get_date(tx)
-        return d == yesterday
+        return get_date(tx) == yesterday
 
     def is_week(tx):
         d = get_date(tx)
@@ -696,7 +697,7 @@ def export_dashboard_excel():
         return d and d.month == today.month and d.year == today.year
 
     # =========================
-    # IMPORTANT FIX: NO MORE "tx in floating"
+    # FIX FLOATING CHECK
     # =========================
     floating_ids = {t.get("transaction_id") for t in floating}
 
@@ -774,7 +775,7 @@ def export_dashboard_excel():
     ws.append([])
 
     # =========================
-    # SECTION BUILDER
+    # SECTION BUILDER (WITH ITEM SOLD RESTORED)
     # =========================
     def build_section(title, txs):
 
@@ -793,6 +794,9 @@ def export_dashboard_excel():
 
         ws.append([])
 
+        # =========================
+        # STAFF
+        # =========================
         staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
 
         for tx in floating_txs:
@@ -812,6 +816,20 @@ def export_dashboard_excel():
 
         for k,v in staff.items():
             ws.append([k,v["role"],v["sales"],v["items"]])
+            style_row(ws[ws.max_row])
+
+        ws.append([])
+
+        # =========================
+        # 🔥 ITEM SOLD (RESTORED)
+        # =========================
+        inventory = get_inventory(floating_txs)
+
+        ws.append(["Item Sold","Qty","Sales"])
+        style_row(ws[ws.max_row], header=True)
+
+        for item, data in inventory.items():
+            ws.append([item, data["qty"], data["sales"]])
             style_row(ws[ws.max_row])
 
         ws.append([])
