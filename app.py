@@ -547,7 +547,6 @@ def export_dashboard_pdf():
     doc.build(elements)
 
     return send_file(file_path, as_attachment=True)
-
 @app.route("/export-dashboard-excel")
 def export_dashboard_excel():
 
@@ -557,6 +556,7 @@ def export_dashboard_excel():
     from openpyxl.utils import get_column_letter
     from datetime import datetime, timedelta
     from collections import defaultdict
+    from email.utils import parsedate_to_datetime
     import json
 
     floating = GLOBAL_DATA.get("floating_transactions", [])
@@ -587,26 +587,27 @@ def export_dashboard_excel():
         return []
 
     # =========================
-    # 🔥 SUPER ROBUST DATE PARSER
+    # DATE PARSER (FIXED GMT)
     # =========================
     def parse_date(dt):
         if not dt:
             return None
 
-        # already datetime
         if isinstance(dt, datetime):
             return dt
 
         dt = str(dt).strip()
 
+        try:
+            return parsedate_to_datetime(dt)
+        except:
+            pass
+
         formats = [
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d",
             "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%dT%H:%M:%S.%f",
             "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%a, %d %b %Y %H:%M:%S %Z"
         ]
 
         for f in formats:
@@ -637,36 +638,46 @@ def export_dashboard_excel():
         })
 
     # =========================
-    # STAFF
+    # 🔥 DISCOUNT (FIXED PROPERLY)
     # =========================
-    def compute_staff(transactions):
-        staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
+    def get_discount(tx):
+        total = 0
 
-        for tx in transactions:
-            cashier = tx.get("attended_by", "UNKNOWN")
-            staff[cashier]["role"] = "cashier"
-            staff[cashier]["sales"] += float(tx.get("total_net_billing") or 0)
+        main = safe_json(tx.get("main_guest_information"))
+        addon = safe_json(tx.get("add_on_guest"))
 
-            for s in get_services(tx):
-                w = s.get("waiter")
-                if w:
-                    staff[w]["role"] = "waiter"
-                    staff[w]["items"] += float(s.get("qty") or 1)
-                    staff[w]["sales"] += float(s.get("price") or 0)
+        # MAIN
+        if isinstance(main, dict):
+            try:
+                total += float(main.get("discount_amount") or 0)
+            except:
+                total += 0
 
-        return staff
+        # ADDON
+        if isinstance(addon, dict):
+            try:
+                total += float(addon.get("discount_amount") or 0)
+            except:
+                total += 0
+
+        return total
 
     # =========================
-    # DATE HELPERS (FIXED LOGIC)
+    # FIXED DATE KEY (IMPORTANT FIX)
+    # =========================
+    def get_date(tx):
+        # use transactiondate FIRST (your sample has it)
+        raw = tx.get("transactiondate") or tx.get("created_at")
+        dt = parse_date(raw)
+        return dt.date() if dt else None
+
+    # =========================
+    # FILTER HELPERS
     # =========================
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
-
-    def get_date(tx):
-        dt = parse_date(tx.get("created_at"))
-        return dt.date() if dt else None
 
     def is_today(tx):
         d = get_date(tx)
@@ -683,6 +694,14 @@ def export_dashboard_excel():
     def is_month(tx):
         d = get_date(tx)
         return d and d.month == today.month and d.year == today.year
+
+    # =========================
+    # IMPORTANT FIX: NO MORE "tx in floating"
+    # =========================
+    floating_ids = {t.get("transaction_id") for t in floating}
+
+    def is_floating(tx):
+        return tx.get("transaction_id") in floating_ids
 
     # =========================
     # EXCEL SETUP
@@ -715,7 +734,7 @@ def export_dashboard_excel():
     def section_title(text):
         ws.append([text])
         r = ws.max_row
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=10)
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=11)
         c = ws.cell(row=r, column=1)
         c.fill = section_fill
         c.font = Font(size=14, bold=True, color="FFFFFF")
@@ -723,14 +742,14 @@ def export_dashboard_excel():
         ws.append([])
 
     # =========================
-    # MASTER TABLE (COMBINED)
+    # MAIN TABLE
     # =========================
-    section_title("ALL TRANSACTIONS (FLOATING + MAINLAND)")
+    section_title("ALL TRANSACTIONS")
 
     ws.append([
         "Transaction ID","Type","Date","Cashier",
         "Waiters","Location","Deck",
-        "Net Sales","Payment","Status"
+        "Net Sales","Discount","Payment","Status"
     ])
     style_row(ws[ws.max_row], header=True)
 
@@ -743,9 +762,10 @@ def export_dashboard_excel():
             d if d else "",
             tx.get("attended_by"),
             extract_waiters(tx),
-            "Floating" if tx in floating else "Mainland",
+            "Floating" if is_floating(tx) else "Mainland",
             tx.get("deck_assigned"),
             float(tx.get("total_net_billing") or 0),
+            get_discount(tx),
             tx.get("mode_of_payment"),
             tx.get("status")
         ])
@@ -760,47 +780,38 @@ def export_dashboard_excel():
 
         section_title(title)
 
-        floating_txs = [t for t in txs if t in floating]
+        floating_txs = [t for t in txs if is_floating(t)]
 
         total_net = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
+        total_discount = sum(get_discount(t) for t in floating_txs)
 
-        ws.append(["Floating Net Sales"])
+        ws.append(["Floating Net Sales", "Total Discount"])
         style_row(ws[ws.max_row], header=True)
 
-        ws.append([total_net])
+        ws.append([total_net, total_discount])
         style_row(ws[ws.max_row])
 
         ws.append([])
 
-        # STAFF
-        staff = compute_staff(floating_txs)
+        staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
+
+        for tx in floating_txs:
+            cashier = tx.get("attended_by", "UNKNOWN")
+            staff[cashier]["role"] = "cashier"
+            staff[cashier]["sales"] += float(tx.get("total_net_billing") or 0)
+
+            for s in get_services(tx):
+                w = s.get("waiter")
+                if w:
+                    staff[w]["role"] = "waiter"
+                    staff[w]["items"] += float(s.get("qty") or 1)
+                    staff[w]["sales"] += float(s.get("price") or 0)
 
         ws.append(["Staff","Role","Sales","Items"])
         style_row(ws[ws.max_row], header=True)
 
         for k,v in staff.items():
             ws.append([k,v["role"],v["sales"],v["items"]])
-            style_row(ws[ws.max_row])
-
-        ws.append([])
-
-        # INVENTORY
-        inventory = defaultdict(lambda: {"qty":0,"sales":0})
-
-        for t in floating_txs:
-            for s in get_services(t):
-                item = s.get("item")
-                qty = float(s.get("qty") or 1)
-                price = float(s.get("price") or 0)
-
-                inventory[item]["qty"] += qty
-                inventory[item]["sales"] += qty * price
-
-        ws.append(["Item","Qty","Sales"])
-        style_row(ws[ws.max_row], header=True)
-
-        for item,data in inventory.items():
-            ws.append([item,data["qty"],data["sales"]])
             style_row(ws[ws.max_row])
 
         ws.append([])
@@ -830,7 +841,6 @@ def export_dashboard_excel():
     wb.save(file_path)
 
     return send_file(file_path, as_attachment=True)
-
 @app.route("/export-dashboard-csv")
 def export_dashboard_csv():
 
