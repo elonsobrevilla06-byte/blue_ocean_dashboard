@@ -2,16 +2,17 @@ import mysql.connector
 
 def get_connection_mainland():
     return mysql.connector.connect(
-        host = "10.104.120.251",
+        # host = "10.104.120.251",
         user = "root",
-        password = "mainland@bob2026!",
+        # password = "mainland@bob2026!",
+        password = "masteryimain31",
         database = "blue_ocean_mainland_db"
-
+        
     )
 
 def get_connection_floatingbar():
     return mysql.connector.connect(
-        host = "10.104.120.251",
+        # host = "10.104.120.251",
         user = "root",
         password = "mainland@bob2026!",
         database = "blue_ocean_floatingbar_db"

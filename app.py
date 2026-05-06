@@ -371,103 +371,179 @@ def export_income_statement():
     wb.save(file_path)
 
     return send_file(file_path, as_attachment=True)
-
 @app.route("/export-dashboard-pdf")
 def export_dashboard_pdf():
 
+    from flask import send_file
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+    import json
+    import re
 
-    data = {
-        "locations": {
-            "mainland": {
-                "kpis": get_mainland_transaction_kpis_data(),
-                "charts": {
-                    "revenue_overview": get_mainland_revenue_data(),
-                    "weekly_sales": get_mainland_weekly_data()
-                }
-            },
-            "floatingbar": {
-                "kpis": get_floatingbar_transaction_kpis_data(),
-                "charts": {
-                    "revenue_overview": get_floatingbar_revenue_data(),
-                    "weekly_sales": get_floatingbar_weekly_data()
-                }
-            }
-        },
-        "shared": {
-            "reservations": get_shared_reservation_data(),
-            "sales": get_shared_menu_sales_data(),
-            "staff": get_shared_employee_rank_data()
-        }
-    }
+    floating = GLOBAL_DATA.get("floating_transactions", [])
+    mainland = GLOBAL_DATA.get("mainland_transactions", [])
+    all_transactions = mainland + floating
+
+    # =========================
+    # SAFE PARSERS
+    # =========================
+    def safe_json(v):
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return {}
+        return {}
+
+    def safe_array(v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return []
+
+    # =========================
+    # 🔥 ULTRA ROBUST DATE PARSER
+    # =========================
+    def parse_date(dt):
+        if not dt:
+            return None
+
+        if isinstance(dt, datetime):
+            return dt
+
+        dt = str(dt).strip()
+
+        # Case 1: normal formats
+        formats = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S.%fZ"
+        ]
+
+        for f in formats:
+            try:
+                return datetime.strptime(dt, f)
+            except:
+                pass
+
+        # Case 2: fallback regex extraction (IMPORTANT FIX)
+        match = re.search(r"\d{4}-\d{2}-\d{2}", dt)
+        if match:
+            try:
+                return datetime.strptime(match.group(), "%Y-%m-%d")
+            except:
+                pass
+
+        return None
+
+    # =========================
+    # GET DATE ONLY
+    # =========================
+    def get_date(tx):
+        dt = parse_date(tx.get("created_at"))
+        return dt.date() if dt else None
+
+    # =========================
+    # FILTERS
+    # =========================
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+
+    def is_today(tx):
+        d = get_date(tx)
+        return d == today
+
+    def is_yesterday(tx):
+        d = get_date(tx)
+        return d == yesterday
+
+    def is_week(tx):
+        d = get_date(tx)
+        if not d:
+            return False
+        start = today - timedelta(days=today.weekday())
+        end = start + timedelta(days=6)
+        return start <= d <= end
+
+    def is_month(tx):
+        d = get_date(tx)
+        return d and d.month == today.month and d.year == today.year
+
+    # =========================
+    # DEBUG (IMPORTANT)
+    # =========================
+    valid_dates = [t for t in all_transactions if get_date(t)]
+    print("TOTAL:", len(all_transactions))
+    print("VALID DATES:", len(valid_dates))
+    print("TODAY:", len([t for t in all_transactions if is_today(t)]))
+    print("YESTERDAY:", len([t for t in all_transactions if is_yesterday(t)]))
+    print("WEEK:", len([t for t in all_transactions if is_week(t)]))
+    print("MONTH:", len([t for t in all_transactions if is_month(t)]))
 
     # =========================
     # PDF SETUP
     # =========================
     file_path = "dashboard_report.pdf"
-    doc = SimpleDocTemplate(file_path, pagesize=A4)
-
+    doc = SimpleDocTemplate(file_path)
     styles = getSampleStyleSheet()
     elements = []
 
-    # =========================
-    # TITLE
-    # =========================
-    elements.append(Paragraph("Business Dashboard Report", styles["Title"]))
-    elements.append(Spacer(1, 12))
+    def add(title, txs):
+
+        elements.append(Paragraph(f"<b>{title}</b>", styles["Title"]))
+        elements.append(Spacer(1, 10))
+
+        floating_txs = [t for t in txs if t in floating]
+
+        total = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
+
+        elements.append(Paragraph(f"Total: {total}", styles["Normal"]))
+        elements.append(Spacer(1, 10))
+
+        # TABLE
+        data = [["ID", "Date", "Cashier", "Sales"]]
+
+        for t in floating_txs:
+            data.append([
+                t.get("transaction_id"),
+                str(get_date(t)),
+                t.get("attended_by"),
+                t.get("total_net_billing")
+            ])
+
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ("GRID", (0,0), (-1,-1), 0.5, colors.black),
+            ("BACKGROUND", (0,0), (-1,0), colors.grey),
+            ("TEXTCOLOR", (0,0), (-1,0), colors.whitesmoke),
+        ]))
+
+        elements.append(table)
+        elements.append(Spacer(1, 20))
 
     # =========================
-    # MAINLAND
+    # BUILD REPORT
     # =========================
-    elements.append(Paragraph("Mainland KPIs", styles["Heading2"]))
-    for k, v in data["locations"]["mainland"]["kpis"].items():
-        elements.append(Paragraph(f"{k}: {v}", styles["Normal"]))
-    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("FLOATING + MAINLAND DASHBOARD REPORT", styles["Title"]))
+    elements.append(Spacer(1, 15))
 
-    # =========================
-    # FLOATINGBAR
-    # =========================
-    elements.append(Paragraph("Floating Bar KPIs", styles["Heading2"]))
-    for k, v in data["locations"]["floatingbar"]["kpis"].items():
-        elements.append(Paragraph(f"{k}: {v}", styles["Normal"]))
-    elements.append(Spacer(1, 10))
+    add("TODAY", all_transactions)
+    add("YESTERDAY", all_transactions)
+    add("THIS WEEK", all_transactions)
+    add("THIS MONTH", all_transactions)
 
-    # =========================
-    # RESERVATIONS
-    # =========================
-    elements.append(Paragraph("Reservations", styles["Heading2"]))
-    elements.append(Paragraph(str(data["shared"]["reservations"]), styles["Normal"]))
-    elements.append(Spacer(1, 10))
-
-    # =========================
-    # SALES TABLE
-    # =========================
-    elements.append(Paragraph("Menu Sales", styles["Heading2"]))
-
-    table_data = [["ID", "Name", "Category", "Qty", "Revenue"]]
-
-    for s in data["shared"]["sales"]:
-        table_data.append([
-            s.get("id"),
-            s.get("name"),
-            s.get("category"),
-            s.get("qty"),
-            s.get("revenue")
-        ])
-
-    table = Table(table_data)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("PADDING", (0, 0), (-1, -1), 5),
-    ]))
-
-    elements.append(table)
-
-    # =========================
-    # BUILD PDF
-    # =========================
     doc.build(elements)
 
     return send_file(file_path, as_attachment=True)
@@ -475,170 +551,549 @@ def export_dashboard_pdf():
 @app.route("/export-dashboard-excel")
 def export_dashboard_excel():
 
-    dashboard = build_dashboard_data() 
+    from flask import send_file
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+    import json
 
-    wb = Workbook()
+    floating = GLOBAL_DATA.get("floating_transactions", [])
+    mainland = GLOBAL_DATA.get("mainland_transactions", [])
+    all_transactions = mainland + floating
 
     # =========================
-    # HELPERS
+    # SAFE PARSERS
     # =========================
-    def safe_value(v):
+    def safe_json(v):
+        if isinstance(v, dict):
+            return v
         if isinstance(v, str):
-            return v.replace("₱", "").replace(",", "").strip()
-        return v
+            try:
+                return json.loads(v)
+            except:
+                return {}
+        return {}
 
-    def auto_width(ws):
-        for col in ws.columns:
-            max_length = 0
-            col_letter = get_column_letter(col[0].column)
+    def safe_array(v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return []
 
-            for cell in col:
-                try:
-                    if cell.value:
-                        max_length = max(max_length, len(str(cell.value)))
-                except:
-                    pass
+    # =========================
+    # 🔥 SUPER ROBUST DATE PARSER
+    # =========================
+    def parse_date(dt):
+        if not dt:
+            return None
 
-            ws.column_dimensions[col_letter].width = max_length + 2
+        # already datetime
+        if isinstance(dt, datetime):
+            return dt
 
-    def write_kpis(ws, kpis):
-        ws.append(["KEY", "VALUE", "TREND", "POSITIVE"])
+        dt = str(dt).strip()
 
-        for k, v in kpis.items():
-            if isinstance(v, dict):
-                ws.append([
-                    str(k),
-                    safe_value(v.get("value", 0)),
-                    v.get("trend", "0%"),
-                    v.get("positive", False)
-                ])
-            else:
-                ws.append([str(k), safe_value(v), "", ""])
+        formats = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            "%a, %d %b %Y %H:%M:%S %Z"
+        ]
 
-    def write_chart(ws, title, data):
+        for f in formats:
+            try:
+                return datetime.strptime(dt, f)
+            except:
+                continue
+
+        return None
+
+    # =========================
+    # SERVICES
+    # =========================
+    def get_services(tx):
+        main = safe_json(tx.get("main_guest_information"))
+        addon = safe_json(tx.get("add_on_guest"))
+
+        return (
+            safe_array(main.get("services_availed")) +
+            safe_array(addon.get("services_availed"))
+        )
+
+    def extract_waiters(tx):
+        return ", ".join({
+            s.get("waiter")
+            for s in get_services(tx)
+            if s.get("waiter")
+        })
+
+    # =========================
+    # STAFF
+    # =========================
+    def compute_staff(transactions):
+        staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
+
+        for tx in transactions:
+            cashier = tx.get("attended_by", "UNKNOWN")
+            staff[cashier]["role"] = "cashier"
+            staff[cashier]["sales"] += float(tx.get("total_net_billing") or 0)
+
+            for s in get_services(tx):
+                w = s.get("waiter")
+                if w:
+                    staff[w]["role"] = "waiter"
+                    staff[w]["items"] += float(s.get("qty") or 1)
+                    staff[w]["sales"] += float(s.get("price") or 0)
+
+        return staff
+
+    # =========================
+    # DATE HELPERS (FIXED LOGIC)
+    # =========================
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+
+    def get_date(tx):
+        dt = parse_date(tx.get("created_at"))
+        return dt.date() if dt else None
+
+    def is_today(tx):
+        d = get_date(tx)
+        return d == today
+
+    def is_yesterday(tx):
+        d = get_date(tx)
+        return d == yesterday
+
+    def is_week(tx):
+        d = get_date(tx)
+        return d and week_start <= d <= week_end
+
+    def is_month(tx):
+        d = get_date(tx)
+        return d and d.month == today.month and d.year == today.year
+
+    # =========================
+    # EXCEL SETUP
+    # =========================
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dashboard"
+
+    header_fill = PatternFill("solid", fgColor="1F4E79")
+    section_fill = PatternFill("solid", fgColor="0B2F4F")
+    white_font = Font(color="FFFFFF", bold=True)
+
+    thin = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin")
+    )
+
+    center = Alignment(horizontal="center", vertical="center")
+
+    def style_row(row, header=False):
+        for cell in row:
+            cell.border = thin
+            cell.alignment = center
+            if header:
+                cell.fill = header_fill
+                cell.font = white_font
+
+    def section_title(text):
+        ws.append([text])
+        r = ws.max_row
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=10)
+        c = ws.cell(row=r, column=1)
+        c.fill = section_fill
+        c.font = Font(size=14, bold=True, color="FFFFFF")
+        c.alignment = center
         ws.append([])
-        ws.append([title])
-        ws.append(["Label", "Value"])
-
-        if isinstance(data, dict):
-            for l, v in zip(data.get("labels", []), data.get("data", [])):
-                ws.append([l, safe_value(v)])
 
     # =========================
-    # MAINLAND
+    # MASTER TABLE (COMBINED)
     # =========================
-    ws1 = wb.active
-    ws1.title = "Mainland"
+    section_title("ALL TRANSACTIONS (FLOATING + MAINLAND)")
 
-    mainland = dashboard["locations"]["mainland"]
+    ws.append([
+        "Transaction ID","Type","Date","Cashier",
+        "Waiters","Location","Deck",
+        "Net Sales","Payment","Status"
+    ])
+    style_row(ws[ws.max_row], header=True)
 
-    write_kpis(ws1, mainland["kpis"])
-    write_chart(ws1, "Revenue Overview", mainland["charts"]["revenue_overview"])
-    write_chart(ws1, "Weekly Sales", mainland["charts"]["weekly_sales"])
-    auto_width(ws1)
+    for tx in all_transactions:
+        d = get_date(tx)
 
-    # =========================
-    # FLOATING BAR
-    # =========================
-    ws2 = wb.create_sheet("Floating Bar")
-
-    floating = dashboard["locations"]["floatingbar"]
-
-    write_kpis(ws2, floating["kpis"])
-    write_chart(ws2, "Revenue Overview", floating["charts"]["revenue_overview"])
-    write_chart(ws2, "Weekly Sales", floating["charts"]["weekly_sales"])
-    auto_width(ws2)
-
-    # =========================
-    # SHARED
-    # =========================
-    ws3 = wb.create_sheet("Shared Data")
-
-    shared = dashboard["shared"]
-
-    ws3.append(["Reservations"])
-    for k, v in shared["reservations"].items():
-        ws3.append([k, v])
-
-    ws3.append([])
-
-    ws3.append(["Sales"])
-    ws3.append(["ID", "Name", "Category", "Qty", "Revenue"])
-
-    for s in shared["sales"]:
-        ws3.append([
-            s.get("id"),
-            s.get("name"),
-            s.get("category"),
-            s.get("qty"),
-            safe_value(s.get("revenue"))
+        ws.append([
+            tx.get("transaction_id"),
+            tx.get("type_of_transaction"),
+            d if d else "",
+            tx.get("attended_by"),
+            extract_waiters(tx),
+            "Floating" if tx in floating else "Mainland",
+            tx.get("deck_assigned"),
+            float(tx.get("total_net_billing") or 0),
+            tx.get("mode_of_payment"),
+            tx.get("status")
         ])
+        style_row(ws[ws.max_row])
 
-    ws3.append([])
+    ws.append([])
 
-    ws3.append(["Staff"])
-    ws3.append(["Rank", "Name", "ID", "Role", "Guests"])
+    # =========================
+    # SECTION BUILDER
+    # =========================
+    def build_section(title, txs):
 
-    for st in shared["staff"]:
-        ws3.append([
-            st.get("rank"),
-            st.get("name"),
-            st.get("id"),
-            st.get("role"),
-            st.get("guests")
-        ])
+        section_title(title)
 
-    auto_width(ws3)
+        floating_txs = [t for t in txs if t in floating]
+
+        total_net = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
+
+        ws.append(["Floating Net Sales"])
+        style_row(ws[ws.max_row], header=True)
+
+        ws.append([total_net])
+        style_row(ws[ws.max_row])
+
+        ws.append([])
+
+        # STAFF
+        staff = compute_staff(floating_txs)
+
+        ws.append(["Staff","Role","Sales","Items"])
+        style_row(ws[ws.max_row], header=True)
+
+        for k,v in staff.items():
+            ws.append([k,v["role"],v["sales"],v["items"]])
+            style_row(ws[ws.max_row])
+
+        ws.append([])
+
+        # INVENTORY
+        inventory = defaultdict(lambda: {"qty":0,"sales":0})
+
+        for t in floating_txs:
+            for s in get_services(t):
+                item = s.get("item")
+                qty = float(s.get("qty") or 1)
+                price = float(s.get("price") or 0)
+
+                inventory[item]["qty"] += qty
+                inventory[item]["sales"] += qty * price
+
+        ws.append(["Item","Qty","Sales"])
+        style_row(ws[ws.max_row], header=True)
+
+        for item,data in inventory.items():
+            ws.append([item,data["qty"],data["sales"]])
+            style_row(ws[ws.max_row])
+
+        ws.append([])
+
+    # =========================
+    # FILTERED SECTIONS
+    # =========================
+    build_section("TODAY", [t for t in all_transactions if is_today(t)])
+    build_section("YESTERDAY", [t for t in all_transactions if is_yesterday(t)])
+    build_section("THIS WEEK", [t for t in all_transactions if is_week(t)])
+    build_section("THIS MONTH", [t for t in all_transactions if is_month(t)])
+
+    # =========================
+    # AUTO WIDTH
+    # =========================
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+
+        for cell in col:
+            if cell.value:
+                max_len = max(max_len, len(str(cell.value)))
+
+        ws.column_dimensions[col_letter].width = max(12, max_len + 3)
 
     file_path = "dashboard_report.xlsx"
     wb.save(file_path)
 
     return send_file(file_path, as_attachment=True)
+
 @app.route("/export-dashboard-csv")
 def export_dashboard_csv():
 
-    data = build_dashboard_data() 
+    from flask import Response
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+    import json
+    import csv
+    import io
+    import re
 
-    file_path = "dashboard_report.csv"
+    floating = GLOBAL_DATA.get("floating_transactions", [])
+    mainland = GLOBAL_DATA.get("mainland_transactions", [])
+    all_transactions = mainland + floating
 
-    with open(file_path, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
+    # =========================
+    # SAFE PARSERS
+    # =========================
+    def safe_json(v):
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return {}
+        return {}
 
-        writer.writerow(["SECTION", "TYPE", "FIELD1", "FIELD2", "FIELD3", "FIELD4"])
+    def safe_array(v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return []
 
-        # KPIs
-        for k, v in data["locations"]["mainland"]["kpis"].items():
-            if isinstance(v, dict):
-                writer.writerow(["mainland", "kpi", k, v.get("value"), v.get("trend"), v.get("positive")])
+    # =========================
+    # DATE PARSER
+    # =========================
+    def parse_date(dt):
+        if not dt:
+            return None
 
-        for k, v in data["locations"]["floatingbar"]["kpis"].items():
-            if isinstance(v, dict):
-                writer.writerow(["floatingbar", "kpi", k, v.get("value"), v.get("trend"), v.get("positive")])
+        if isinstance(dt, datetime):
+            return dt
 
-        # SALES
-        for s in data["shared"]["sales"]:
-            writer.writerow([
-                "shared",
-                "sales",
-                s.get("id"),
-                s.get("name"),
-                s.get("category"),
-                s.get("revenue")
-            ])
+        dt = str(dt).strip()
+
+        formats = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S.%fZ"
+        ]
+
+        for f in formats:
+            try:
+                return datetime.strptime(dt, f)
+            except:
+                continue
+
+        return None
+
+    # =========================
+    # 🔥 FIXED DATE EXTRACTOR (IMPORTANT)
+    # =========================
+    def extract_datetime(tx):
+
+        # 1. normal fields
+        raw = (
+            tx.get("created_at")
+            or tx.get("datetime")
+            or tx.get("date")
+        )
+
+        dt = parse_date(raw)
+        if dt:
+            return dt
+
+        # 2. fallback: extract from transaction_id
+        tid = tx.get("transaction_id", "")
+
+        match = re.search(r"(\d{6})", tid)  # YYMMDD
+        if match:
+            try:
+                return datetime.strptime(match.group(1), "%y%m%d")
+            except:
+                pass
+
+        return None
+
+    def get_date(tx):
+        dt = extract_datetime(tx)
+        return dt.date() if dt else None
+
+    # =========================
+    # SERVICES
+    # =========================
+    def get_services(tx):
+        main = safe_json(tx.get("main_guest_information"))
+        addon = safe_json(tx.get("add_on_guest"))
+
+        return (
+            safe_array(main.get("services_availed")) +
+            safe_array(addon.get("services_availed"))
+        )
+
+    def extract_waiters(tx):
+        return ", ".join({
+            s.get("waiter")
+            for s in get_services(tx)
+            if s.get("waiter")
+        })
+
+    # =========================
+    # DATE FILTERS
+    # =========================
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+
+    def is_today(tx):
+        d = get_date(tx)
+        return d == today
+
+    def is_yesterday(tx):
+        d = get_date(tx)
+        return d == yesterday
+
+    def is_week(tx):
+        d = get_date(tx)
+        return d and week_start <= d <= week_end
+
+    def is_month(tx):
+        d = get_date(tx)
+        return d and d.month == today.month and d.year == today.year
+
+    # =========================
+    # STAFF
+    # =========================
+    def compute_staff(transactions):
+        staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
+
+        for tx in transactions:
+            cashier = tx.get("attended_by", "UNKNOWN")
+            staff[cashier]["role"] = "cashier"
+            staff[cashier]["sales"] += float(tx.get("total_net_billing") or 0)
+
+            for s in get_services(tx):
+                w = s.get("waiter")
+                if w:
+                    staff[w]["role"] = "waiter"
+                    staff[w]["items"] += float(s.get("qty") or 1)
+                    staff[w]["sales"] += float(s.get("price") or 0)
+
+        return staff
+
+    # =========================
+    # CSV OUTPUT
+    # =========================
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # =========================
+    # HEADER
+    # =========================
+    writer.writerow(["FLOATING + MAINLAND DASHBOARD REPORT"])
+    writer.writerow([])
+
+    # =========================
+    # MASTER TABLE
+    # =========================
+    writer.writerow([
+        "Transaction ID","Type","Date","Cashier",
+        "Waiters","Location","Deck",
+        "Net Sales","Payment","Status"
+    ])
+
+    for tx in all_transactions:
+        d = get_date(tx)
+
+        writer.writerow([
+            tx.get("transaction_id"),
+            tx.get("type_of_transaction"),
+            d if d else "",
+            tx.get("attended_by"),
+            extract_waiters(tx),
+            "Floating" if tx in floating else "Mainland",
+            tx.get("deck_assigned"),
+            float(tx.get("total_net_billing") or 0),
+            tx.get("mode_of_payment"),
+            tx.get("status")
+        ])
+
+    writer.writerow([])
+    writer.writerow(["================ FILTERED REPORTS ================"])
+    writer.writerow([])
+
+    # =========================
+    # SECTION WRITER
+    # =========================
+    def write_section(title, txs):
+
+        writer.writerow([title])
+        writer.writerow([])
+
+        floating_txs = [t for t in txs if t in floating]
+
+        total_net = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
+
+        writer.writerow(["Floating Net Sales", total_net])
+        writer.writerow([])
 
         # STAFF
-        for st in data["shared"]["staff"]:
-            writer.writerow([
-                "shared",
-                "staff",
-                st.get("id"),
-                st.get("name"),
-                st.get("role"),
-                st.get("guests")
-            ])
+        staff = compute_staff(floating_txs)
 
-    return send_file(file_path, as_attachment=True)
+        writer.writerow(["Staff","Role","Sales","Items"])
+        for k,v in staff.items():
+            writer.writerow([k, v["role"], v["sales"], v["items"]])
 
+        writer.writerow([])
+
+        # INVENTORY
+        inventory = defaultdict(lambda: {"qty":0,"sales":0})
+
+        for t in floating_txs:
+            for s in get_services(t):
+                item = s.get("item")
+                qty = float(s.get("qty") or 1)
+                price = float(s.get("price") or 0)
+
+                inventory[item]["qty"] += qty
+                inventory[item]["sales"] += qty * price
+
+        writer.writerow(["Item","Qty","Sales"])
+        for item,data in inventory.items():
+            writer.writerow([item, data["qty"], data["sales"]])
+
+        writer.writerow([])
+
+    # =========================
+    # FILTERS (NOW WORKING)
+    # =========================
+    write_section("TODAY", [t for t in all_transactions if is_today(t)])
+    write_section("YESTERDAY", [t for t in all_transactions if is_yesterday(t)])
+    write_section("THIS WEEK", [t for t in all_transactions if is_week(t)])
+    write_section("THIS MONTH", [t for t in all_transactions if is_month(t)])
+
+    # =========================
+    # RESPONSE
+    # =========================
+    output.seek(0)
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=dashboard_report.csv"}
+    )
 @app.route("/export-cash-operations-excel")
 def export_cash_operations_excel():
 
@@ -702,6 +1157,8 @@ def export_cash_operations_excel():
     wb.save(file_path)
 
     return send_file(file_path, as_attachment=True)
+
+
 # FLOATING_API_URL_EMPLOYEES = "http://10.104.120.221:5000/floatingbar/employees"
 # FLOATING_API_URL_TRANSACTION = "http://10.104.120.221:5000/floatingbar/transaction"
 # FLOATING_API_URL_TABLES = "http://10.104.120.221:5000/floatingbar/table_management"

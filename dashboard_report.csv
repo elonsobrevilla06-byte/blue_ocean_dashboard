@@ -1,9 +1,5 @@
 SECTION,TYPE,FIELD1,FIELD2,FIELD3,FIELD4
-mainland,kpi,total_revenue,"₱1,000",-37.5%,False
-mainland,kpi,active_customers,1,-50.0%,False
-mainland,kpi,cancelled,0,0%,True
-mainland,kpi,net_sales,"₱1,000",-37.5%,False
-floatingbar,kpi,total_revenue,₱0,0%,True
-floatingbar,kpi,active_customers,0,0%,True
-floatingbar,kpi,cancelled,0,0%,True
-floatingbar,kpi,net_sales,₱0,0%,True
+TODAY,TOTAL_SALES,0,,,
+YESTERDAY,TOTAL_SALES,0,,,
+THIS_WEEK,TOTAL_SALES,0,,,
+THIS_MONTH,TOTAL_SALES,0,,,
