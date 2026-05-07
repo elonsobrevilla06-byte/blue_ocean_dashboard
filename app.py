@@ -716,6 +716,9 @@ def export_dashboard_excel():
                 return []
         return []
 
+    # =========================
+    # DATE PARSER
+    # =========================
     def parse_date(dt):
         if not dt:
             return None
@@ -745,6 +748,9 @@ def export_dashboard_excel():
 
         return None
 
+    # =========================
+    # FILTER FROM FRONTEND
+    # =========================
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
@@ -759,10 +765,7 @@ def export_dashboard_excel():
                 raw = tx.get("transactiondate") or tx.get("created_at")
                 dt = parse_date(raw)
 
-                if not dt:
-                    continue
-
-                if start_obj <= dt.date() <= end_obj:
+                if dt and start_obj <= dt.date() <= end_obj:
                     filtered.append(tx)
 
             all_transactions = filtered
@@ -770,6 +773,9 @@ def export_dashboard_excel():
         except Exception as e:
             print("FILTER ERROR:", e)
 
+    # =========================
+    # SERVICES
+    # =========================
     def get_services(tx):
         main = safe_json(tx.get("main_guest_information"))
         addon = safe_json(tx.get("add_on_guest"))
@@ -795,6 +801,9 @@ def export_dashboard_excel():
             if s.get("waiter")
         })
 
+    # =========================
+    # DISCOUNT
+    # =========================
     def get_discount(tx):
         main = safe_json(tx.get("main_guest_information"))
         addon = safe_json(tx.get("add_on_guest"))
@@ -809,6 +818,9 @@ def export_dashboard_excel():
 
         return total
 
+    # =========================
+    # INVENTORY
+    # =========================
     def get_inventory(txs):
         inventory = defaultdict(lambda: {"qty": 0, "sales": 0})
 
@@ -816,7 +828,6 @@ def export_dashboard_excel():
             for s in get_services(t):
 
                 item = s.get("item")
-
                 if not item:
                     continue
 
@@ -828,11 +839,17 @@ def export_dashboard_excel():
 
         return inventory
 
+    # =========================
+    # FLOATING CHECK
+    # =========================
     floating_ids = {t.get("transaction_id") for t in floating}
 
     def is_floating(tx):
         return tx.get("transaction_id") in floating_ids
 
+    # =========================
+    # STYLES
+    # =========================
     header_fill = PatternFill("solid", fgColor="1F4E79")
     white_font = Font(color="FFFFFF", bold=True)
 
@@ -865,21 +882,17 @@ def export_dashboard_excel():
 
             ws.column_dimensions[col_letter].width = max(12, max_len + 3)
 
+    # =========================
+    # TIMESTAMP
+    # =========================
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     floating_txs = [t for t in all_transactions if is_floating(t)]
     mainland_txs = [t for t in all_transactions if not is_floating(t)]
 
-    # ✅ NEW FOLDER (ONLY CHANGE)
-    output_dir = "report_excel"
-    os.makedirs(output_dir, exist_ok=True)
-
-    zip_path = os.path.join(output_dir, f"dashboard_reports_{timestamp}.zip")
-
     # =====================================================
-    # FILE 1 - TRANSACTIONS
+    # FILE 1 - TRANSACTIONS (UNCHANGED)
     # =====================================================
-    transactions_file = os.path.join(output_dir, f"transactions_{timestamp}.xlsx")
     wb_transactions = Workbook()
     ws_transactions = wb_transactions.active
     ws_transactions.title = "Transactions"
@@ -887,6 +900,10 @@ def export_dashboard_excel():
     ws_transactions.append(["FILTERED DASHBOARD REPORT"])
     ws_transactions.merge_cells(start_row=1, start_column=1, end_row=1, end_column=11)
     ws_transactions.append([])
+
+    if start_date and end_date:
+        ws_transactions.append([f"FILTER: {start_date} to {end_date}"])
+        ws_transactions.append([])
 
     ws_transactions.append([
         "Transaction ID","Type","Date","Cashier",
@@ -929,12 +946,12 @@ def export_dashboard_excel():
 
     auto_width(ws_transactions)
 
+    transactions_file = f"transactions_{timestamp}.xlsx"
     wb_transactions.save(transactions_file)
 
     # =====================================================
-    # FILE 2 - STAFF
+    # FILE 2 - STAFF SALES (FIXED LOGIC)
     # =====================================================
-    staff_file = os.path.join(output_dir, f"staff_sales_{timestamp}.xlsx")
     wb_staff = Workbook()
     ws_staff = wb_staff.active
     ws_staff.title = "Staff Sales"
@@ -954,8 +971,9 @@ def export_dashboard_excel():
 
             if w:
                 staff[w]["role"] = "waiter"
+
+                # ✅ FIXED: only COUNT ITEMS (NO SALES ADDED)
                 staff[w]["items"] += float(s.get("qty") or 1)
-                staff[w]["sales"] += float(s.get("price") or 0)
 
     ws_staff.append(["Staff","Role","Sales","Items"])
     style_row(ws_staff[ws_staff.max_row], header=True)
@@ -973,12 +991,12 @@ def export_dashboard_excel():
 
     auto_width(ws_staff)
 
+    staff_file = f"staff_sales_{timestamp}.xlsx"
     wb_staff.save(staff_file)
 
     # =====================================================
-    # FILE 3 - ITEMS
+    # FILE 3 - ITEMS SOLD (UNCHANGED LOGIC)
     # =====================================================
-    items_file = os.path.join(output_dir, f"items_sold_{timestamp}.xlsx")
     wb_items = Workbook()
     ws_items = wb_items.active
     ws_items.title = "Items Sold"
@@ -1001,15 +1019,18 @@ def export_dashboard_excel():
 
     auto_width(ws_items)
 
+    items_file = f"items_sold_{timestamp}.xlsx"
     wb_items.save(items_file)
 
     # =====================================================
-    # ZIP (STORED IN report_excel)
+    # ZIP
     # =====================================================
+    zip_path = f"dashboard_reports_{timestamp}.zip"
+
     with zipfile.ZipFile(zip_path, "w") as zipf:
-        zipf.write(transactions_file, os.path.basename(transactions_file))
-        zipf.write(staff_file, os.path.basename(staff_file))
-        zipf.write(items_file, os.path.basename(items_file))
+        zipf.write(transactions_file)
+        zipf.write(staff_file)
+        zipf.write(items_file)
 
     return send_file(zip_path, as_attachment=True)
 @app.route("/export-dashboard-csv")
