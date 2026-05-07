@@ -379,24 +379,26 @@ def export_dashboard_pdf():
         SimpleDocTemplate,
         Table,
         TableStyle,
-        Paragraph,
-        Spacer
+        Paragraph
     )
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.pagesizes import landscape, letter
     from datetime import datetime
     from collections import defaultdict
     from email.utils import parsedate_to_datetime
     import json
+    import zipfile
 
-
+    # =========================
+    # DATA LOAD
+    # =========================
     floating = GLOBAL_DATA.get("floating_transactions", [])
     mainland = GLOBAL_DATA.get("mainland_transactions", [])
 
     floating = [
-    tx for tx in floating
-    if (tx.get("mode_of_payment") or "").lower() != "free of charge"
+        tx for tx in floating
+        if (tx.get("mode_of_payment") or "").lower() != "free of charge"
     ]
 
     mainland = [
@@ -435,7 +437,6 @@ def export_dashboard_pdf():
     def parse_date(dt):
         if not dt:
             return None
-
         if isinstance(dt, datetime):
             return dt
 
@@ -446,16 +447,12 @@ def export_dashboard_pdf():
         except:
             pass
 
-        formats = [
+        for f in [
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d",
             "%Y-%m-%dT%H:%M:%S",
             "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%f",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-        ]
-
-        for f in formats:
+        ]:
             try:
                 return datetime.strptime(dt, f)
             except:
@@ -464,27 +461,20 @@ def export_dashboard_pdf():
         return None
 
     # =========================
-    # FILTER (FROM FRONTEND)
+    # FILTER
     # =========================
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
     if start_date and end_date:
         try:
-            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+            start_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
 
             filtered = []
-
             for tx in all_transactions:
-
-                raw = tx.get("transactiondate") or tx.get("created_at")
-                dt = parse_date(raw)
-
-                if not dt:
-                    continue
-
-                if start_date_obj <= dt.date() <= end_date_obj:
+                dt = parse_date(tx.get("transactiondate") or tx.get("created_at"))
+                if dt and start_obj <= dt.date() <= end_obj:
                     filtered.append(tx)
 
             all_transactions = filtered
@@ -499,55 +489,18 @@ def export_dashboard_pdf():
         main = safe_json(tx.get("main_guest_information"))
         addon = safe_json(tx.get("add_on_guest"))
 
-        return (
-            safe_array(main.get("services_availed")) +
-            safe_array(addon.get("services_availed"))
-        )
-
-    def extract_waiters(tx):
-        return ", ".join({
-            s.get("waiter")
-            for s in get_services(tx)
-            if s.get("waiter")
-        })
-
-    # =========================
-    # DISCOUNT
-    # =========================
-    def get_discount(tx):
-        main = safe_json(tx.get("main_guest_information"))
-        addon = safe_json(tx.get("add_on_guest"))
-
-        total = 0
+        services = []
 
         if isinstance(main, dict):
-            total += float(main.get("discount_amount") or 0)
+            services += safe_array(main.get("services_availed"))
 
-        if isinstance(addon, dict):
-            total += float(addon.get("discount_amount") or 0)
+        if isinstance(addon, list):
+            for g in addon:
+                services += safe_array(g.get("services_availed"))
+        elif isinstance(addon, dict):
+            services += safe_array(addon.get("services_availed"))
 
-        return total
-
-    # =========================
-    # INVENTORY
-    # =========================
-    def get_inventory(txs):
-        inventory = defaultdict(lambda: {"qty": 0, "sales": 0})
-
-        for t in txs:
-            for s in get_services(t):
-
-                item = s.get("item")
-                if not item:
-                    continue
-
-                qty = float(s.get("qty") or 1)
-                price = float(s.get("price") or 0)
-
-                inventory[item]["qty"] += qty
-                inventory[item]["sales"] += qty * price
-
-        return inventory
+        return services
 
     # =========================
     # FLOATING CHECK
@@ -558,25 +511,18 @@ def export_dashboard_pdf():
         return tx.get("transaction_id") in floating_ids
 
     # =========================
-    # PDF SETUP
-    # =========================
-    file_path = "dashboard_report.pdf"
-
-    doc = SimpleDocTemplate(
-        file_path,
-        pagesize=landscape(letter),
-        rightMargin=20,
-        leftMargin=20,
-        topMargin=20,
-        bottomMargin=20
-    )
-
-    styles = getSampleStyleSheet()
-    elements = []
-
-    # =========================
     # STYLE
     # =========================
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "title",
+        parent=styles["Title"],
+        fontSize=26,
+        alignment=1,
+        spaceAfter=20
+    )
+
     def style_table(table):
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F4E79")),
@@ -585,126 +531,140 @@ def export_dashboard_pdf():
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ]))
         return table
 
-    # =========================
-    # TITLE
-    # =========================
-    elements.append(
-        Paragraph(
-            "<b>FILTERED DASHBOARD REPORT</b>",
-            styles["Title"]
-        )
-    )
-    elements.append(Spacer(1, 15))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    if start_date and end_date:
-        elements.append(
-            Paragraph(
-                f"<b>FILTER:</b> {start_date} to {end_date}",
-                styles["Normal"]
-            )
-        )
-        elements.append(Spacer(1, 15))
+    floating_txs = [t for t in all_transactions if is_floating(t)]
+    mainland_txs = [t for t in all_transactions if not is_floating(t)]
 
-    # =========================
-    # MAIN TABLE
-    # =========================
-    main_data = [[
-        "Transaction ID", "Type", "Date", "Cashier",
-        "Waiters", "Location", "Deck",
-        "Net Sales", "Discount", "Payment", "Status"
+    # =====================================================
+    # 1) TRANSACTIONS PDF
+    # =====================================================
+    tx_file = f"transactions_{timestamp}.pdf"
+    doc = SimpleDocTemplate(tx_file, pagesize=landscape(letter))
+    elements = []
+
+    elements.append(Paragraph("TRANSACTIONS REPORT", title_style))
+
+    data = [[
+        "Transaction ID","Type","Date","Cashier",
+        "Location","Net Sales"
     ]]
 
     for tx in all_transactions:
         dt = parse_date(tx.get("transactiondate") or tx.get("created_at"))
 
-        main_data.append([
+        data.append([
             tx.get("transaction_id"),
             tx.get("type_of_transaction"),
             str(dt.date() if dt else ""),
             tx.get("attended_by"),
-            extract_waiters(tx),
             "Floating" if is_floating(tx) else "Mainland",
-            tx.get("deck_assigned"),
-            float(tx.get("total_net_billing") or 0),
-            get_discount(tx),
-            tx.get("mode_of_payment"),
-            tx.get("status")
+            float(tx.get("total_net_billing") or 0)
         ])
 
-    main_table = Table(main_data, repeatRows=1)
-    elements.append(style_table(main_table))
-    elements.append(Spacer(1, 20))
+    data.append(["", "", "", "MAINLAND TOTAL", "",
+                 sum(float(t.get("total_net_billing") or 0) for t in mainland_txs)])
 
-    # =========================
-    # SUMMARY SECTION (ONLY ONCE)
-    # =========================
-    floating_txs = [t for t in all_transactions if is_floating(t)]
+    data.append(["", "", "", "FLOATING TOTAL", "",
+                 sum(float(t.get("total_net_billing") or 0) for t in floating_txs)])
 
-    total_net = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
-    total_discount = sum(get_discount(t) for t in floating_txs)
+    elements.append(style_table(Table(data)))
+    doc.build(elements)
 
-    summary = Table([
-        ["Floating Net Sales", "Total Discount"],
-        [f"{total_net:,.2f}", f"{total_discount:,.2f}"]
-    ])
+    # =====================================================
+    # 2) STAFF PDF (FIXED - NO DOUBLE COUNTING)
+    # =====================================================
+    staff_file = f"staff_{timestamp}.pdf"
+    doc = SimpleDocTemplate(staff_file, pagesize=landscape(letter))
+    elements = []
 
-    elements.append(style_table(summary))
-    elements.append(Spacer(1, 15))
+    elements.append(Paragraph("STAFF SALES REPORT", title_style))
 
-    # =========================
-    # STAFF
-    # =========================
     staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
 
     for tx in floating_txs:
+
         cashier = tx.get("attended_by", "UNKNOWN")
 
+        # CASHIER = FULL SALES
         staff[cashier]["role"] = "cashier"
         staff[cashier]["sales"] += float(tx.get("total_net_billing") or 0)
 
+        # WAITER = ITEMS ONLY (NO MONEY)
         for s in get_services(tx):
             w = s.get("waiter")
+
             if w:
                 staff[w]["role"] = "waiter"
                 staff[w]["items"] += float(s.get("qty") or 1)
-                staff[w]["sales"] += float(s.get("price") or 0)
 
-    staff_data = [["Staff", "Role", "Sales", "Items"]]
+    data = [["Staff","Role","Sales","Items"]]
+
+    total_staff_sales = sum(v["sales"] for v in staff.values())
 
     for k, v in staff.items():
-        staff_data.append([
-            k, v["role"], f"{v['sales']:,.2f}", f"{v['items']:,.2f}"
+        data.append([
+            k,
+            v["role"],
+            round(v["sales"], 2),
+            round(v["items"], 2)
         ])
 
-    elements.append(style_table(Table(staff_data, repeatRows=1)))
-    elements.append(Spacer(1, 15))
+    data.append(["TOTAL NET SALES", "", round(total_staff_sales, 2), ""])
 
-    # =========================
-    # ITEM SOLD
-    # =========================
-    inventory = get_inventory(floating_txs)
-
-    inv_data = [["Item Sold", "Qty", "Sales"]]
-
-    for item, data in inventory.items():
-        inv_data.append([
-            item,
-            f"{data['qty']:,.2f}",
-            f"{data['sales']:,.2f}"
-        ])
-
-    elements.append(style_table(Table(inv_data, repeatRows=1)))
-
-    # =========================
-    # BUILD PDF
-    # =========================
+    elements.append(style_table(Table(data)))
     doc.build(elements)
 
-    return send_file(file_path, as_attachment=True)
+    # =====================================================
+    # 3) ITEMS PDF
+    # =====================================================
+    items_file = f"items_{timestamp}.pdf"
+    doc = SimpleDocTemplate(items_file, pagesize=landscape(letter))
+    elements = []
+
+    elements.append(Paragraph("ITEMS SOLD REPORT", title_style))
+
+    inventory = defaultdict(lambda: {"qty": 0, "sales": 0})
+
+    for tx in floating_txs:
+        for s in get_services(tx):
+
+            item = s.get("item")
+            if not item:
+                continue
+
+            qty = float(s.get("qty") or 1)
+            price = float(s.get("price") or 0)
+
+            inventory[item]["qty"] += qty
+            inventory[item]["sales"] += qty * price
+
+    data = [["Item","Qty","Sales"]]
+
+    total_item_sales = sum(d["sales"] for d in inventory.values())
+
+    for item, d in inventory.items():
+        data.append([item, d["qty"], round(d["sales"], 2)])
+
+    data.append(["TOTAL NET SALES", "", round(total_item_sales, 2)])
+
+    elements.append(style_table(Table(data)))
+    doc.build(elements)
+
+    # =====================================================
+    # ZIP FILES
+    # =====================================================
+    zip_path = f"dashboard_reports_{timestamp}.zip"
+
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        zipf.write(tx_file)
+        zipf.write(staff_file)
+        zipf.write(items_file)
+
+    return send_file(zip_path, as_attachment=True)
 @app.route("/export-dashboard-excel")
 def export_dashboard_excel():
 
@@ -716,13 +676,15 @@ def export_dashboard_excel():
     from collections import defaultdict
     from email.utils import parsedate_to_datetime
     import json
+    import zipfile
+    import os
 
     floating = GLOBAL_DATA.get("floating_transactions", [])
     mainland = GLOBAL_DATA.get("mainland_transactions", [])
 
     floating = [
-    tx for tx in floating
-    if (tx.get("mode_of_payment") or "").lower() != "free of charge"
+        tx for tx in floating
+        if (tx.get("mode_of_payment") or "").lower() != "free of charge"
     ]
 
     mainland = [
@@ -731,9 +693,6 @@ def export_dashboard_excel():
     ]
 
     all_transactions = mainland + floating
-
-
-
 
     # =========================
     # SAFE PARSERS
@@ -825,10 +784,19 @@ def export_dashboard_excel():
         main = safe_json(tx.get("main_guest_information"))
         addon = safe_json(tx.get("add_on_guest"))
 
-        return (
-            safe_array(main.get("services_availed")) +
-            safe_array(addon.get("services_availed"))
-        )
+        services = []
+
+        if isinstance(main, dict):
+            services += safe_array(main.get("services_availed"))
+
+        if isinstance(addon, list):
+            for guest in addon:
+                services += safe_array(guest.get("services_availed"))
+
+        elif isinstance(addon, dict):
+            services += safe_array(addon.get("services_availed"))
+
+        return services
 
     def extract_waiters(tx):
         return ", ".join({
@@ -845,8 +813,10 @@ def export_dashboard_excel():
         addon = safe_json(tx.get("add_on_guest"))
 
         total = 0
+
         if isinstance(main, dict):
             total += float(main.get("discount_amount") or 0)
+
         if isinstance(addon, dict):
             total += float(addon.get("discount_amount") or 0)
 
@@ -862,6 +832,7 @@ def export_dashboard_excel():
             for s in get_services(t):
 
                 item = s.get("item")
+
                 if not item:
                     continue
 
@@ -882,57 +853,73 @@ def export_dashboard_excel():
         return tx.get("transaction_id") in floating_ids
 
     # =========================
-    # EXCEL SETUP
+    # STYLES
     # =========================
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Dashboard"
-
     header_fill = PatternFill("solid", fgColor="1F4E79")
     white_font = Font(color="FFFFFF", bold=True)
+
     thin = Border(
         left=Side(style="thin"),
         right=Side(style="thin"),
         top=Side(style="thin"),
         bottom=Side(style="thin")
     )
+
     center = Alignment(horizontal="center", vertical="center")
 
     def style_row(row, header=False):
         for cell in row:
             cell.border = thin
             cell.alignment = center
+
             if header:
                 cell.fill = header_fill
                 cell.font = white_font
 
+    def auto_width(ws):
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+
+            for cell in col:
+                if cell.value:
+                    max_len = max(max_len, len(str(cell.value)))
+
+            ws.column_dimensions[col_letter].width = max(12, max_len + 3)
+
     # =========================
-    # TITLE
+    # TIMESTAMP
     # =========================
-    ws.append(["FILTERED DASHBOARD REPORT"])
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=11)
-    ws.append([])
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # =====================================================
+    # FILE 1 - TRANSACTIONS
+    # =====================================================
+    wb_transactions = Workbook()
+    ws_transactions = wb_transactions.active
+    ws_transactions.title = "Transactions"
+
+    ws_transactions.append(["FILTERED DASHBOARD REPORT"])
+    ws_transactions.merge_cells(start_row=1, start_column=1, end_row=1, end_column=11)
+    ws_transactions.append([])
 
     if start_date and end_date:
-        ws.append([f"FILTER: {start_date} to {end_date}"])
-        ws.append([])
+        ws_transactions.append([f"FILTER: {start_date} to {end_date}"])
+        ws_transactions.append([])
 
-    # =========================
-    # MAIN TABLE
-    # =========================
-    ws.append([
+    ws_transactions.append([
         "Transaction ID","Type","Date","Cashier",
         "Waiters","Location","Deck",
         "Net Sales","Discount","Payment","Status"
     ])
-    style_row(ws[ws.max_row], header=True)
 
+    style_row(ws_transactions[ws_transactions.max_row], header=True)
 
     for tx in all_transactions:
+
         dt = parse_date(tx.get("transactiondate") or tx.get("created_at"))
 
-
-        ws.append([
+        ws_transactions.append([
             tx.get("transaction_id"),
             tx.get("type_of_transaction"),
             str(dt.date() if dt else ""),
@@ -945,82 +932,112 @@ def export_dashboard_excel():
             tx.get("mode_of_payment"),
             tx.get("status")
         ])
-        style_row(ws[ws.max_row])
 
-    ws.append([])
+        style_row(ws_transactions[ws_transactions.max_row])
 
-    # =========================
-    # FLOATING SUMMARY
-    # =========================
+    ws_transactions.append([])
+
     floating_txs = [t for t in all_transactions if is_floating(t)]
+    mainland_txs = [t for t in all_transactions if not is_floating(t)]
 
-    total_net = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
-    total_discount = sum(get_discount(t) for t in floating_txs)
+    floating_total = sum(float(t.get("total_net_billing") or 0) for t in floating_txs)
+    mainland_total = sum(float(t.get("total_net_billing") or 0) for t in mainland_txs)
 
-    ws.append(["Floating Net Sales", "Total Discount"])
-    style_row(ws[ws.max_row], header=True)
+    ws_transactions.append(["Mainland Net Sales", "Floating Net Sales"])
+    style_row(ws_transactions[ws_transactions.max_row], header=True)
 
-    ws.append([total_net, total_discount])
-    style_row(ws[ws.max_row])
+    ws_transactions.append([mainland_total, floating_total])
+    style_row(ws_transactions[ws_transactions.max_row])
 
-    ws.append([])
+    auto_width(ws_transactions)
 
-    # =========================
-    # STAFF
-    # =========================
+    transactions_file = f"transactions_{timestamp}.xlsx"
+    wb_transactions.save(transactions_file)
+
+    # =====================================================
+    # FILE 2 - STAFF SALES
+    # =====================================================
+    wb_staff = Workbook()
+    ws_staff = wb_staff.active
+    ws_staff.title = "Staff Sales"
+
     staff = defaultdict(lambda: {"role": "", "sales": 0, "items": 0})
 
     for tx in floating_txs:
+
         cashier = tx.get("attended_by", "UNKNOWN")
 
         staff[cashier]["role"] = "cashier"
         staff[cashier]["sales"] += float(tx.get("total_net_billing") or 0)
 
         for s in get_services(tx):
+
             w = s.get("waiter")
+
             if w:
                 staff[w]["role"] = "waiter"
                 staff[w]["items"] += float(s.get("qty") or 1)
                 staff[w]["sales"] += float(s.get("price") or 0)
 
-    ws.append(["Staff","Role","Sales","Items"])
-    style_row(ws[ws.max_row], header=True)
+    ws_staff.append(["Staff","Role","Sales","Items"])
+    style_row(ws_staff[ws_staff.max_row], header=True)
 
     for k, v in staff.items():
-        ws.append([k, v["role"], v["sales"], v["items"]])
-        style_row(ws[ws.max_row])
+        ws_staff.append([k, v["role"], v["sales"], v["items"]])
+        style_row(ws_staff[ws_staff.max_row])
 
-    ws.append([])
+    ws_staff.append([])
 
-    # =========================
-    # ITEM SOLD
-    # =========================
+    # ✅ FIXED TOTAL STAFF NET SALES
+    staff_total_net = sum(float(v["sales"] or 0) for v in staff.values())
+
+    ws_staff.append(["Total Net Sales", "", staff_total_net, ""])
+    style_row(ws_staff[ws_staff.max_row], header=True)
+
+    auto_width(ws_staff)
+
+    staff_file = f"staff_sales_{timestamp}.xlsx"
+    wb_staff.save(staff_file)
+
+    # =====================================================
+    # FILE 3 - ITEM SOLD
+    # =====================================================
+    wb_items = Workbook()
+    ws_items = wb_items.active
+    ws_items.title = "Items Sold"
+
     inventory = get_inventory(floating_txs)
 
-    ws.append(["Item Sold","Qty","Sales"])
-    style_row(ws[ws.max_row], header=True)
+    ws_items.append(["Item Sold","Qty","Sales"])
+    style_row(ws_items[ws_items.max_row], header=True)
 
     for item, data in inventory.items():
-        ws.append([item, data["qty"], data["sales"]])
-        style_row(ws[ws.max_row])
+        ws_items.append([item, data["qty"], data["sales"]])
+        style_row(ws_items[ws_items.max_row])
 
-    # =========================
-    # AUTO WIDTH
-    # =========================
-    for col in ws.columns:
-        max_len = 0
-        col_letter = get_column_letter(col[0].column)
+    ws_items.append([])
 
-        for cell in col:
-            if cell.value:
-                max_len = max(max_len, len(str(cell.value)))
+    items_total_net = sum(float(data["sales"]) for data in inventory.values())
 
-        ws.column_dimensions[col_letter].width = max(12, max_len + 3)
+    ws_items.append(["Total Net Sales", "", items_total_net])
+    style_row(ws_items[ws_items.max_row], header=True)
 
-    file_path = "dashboard_report.xlsx"
-    wb.save(file_path)
+    auto_width(ws_items)
 
-    return send_file(file_path, as_attachment=True)
+    items_file = f"items_sold_{timestamp}.xlsx"
+    wb_items.save(items_file)
+
+    # =====================================================
+    # ZIP
+    # =====================================================
+    zip_path = f"dashboard_reports_{timestamp}.zip"
+
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        zipf.write(transactions_file)
+        zipf.write(staff_file)
+        zipf.write(items_file)
+
+    return send_file(zip_path, as_attachment=True)
 @app.route("/export-dashboard-csv")
 def export_dashboard_csv():
 
@@ -1420,16 +1437,17 @@ thread.start()
 #                        1.) DASHBOARD
 
 # ---------------------------------------------------------------
-
 def get_mainland_transaction_kpis_data():
     try:
-        transactions = GLOBAL_DATA["mainland_transactions"]
-
-        current_year = datetime.now().year
-        last_year = current_year - 1
+        transactions = [
+            t for t in  GLOBAL_DATA["mainland_transactions"]
+            if not str(t.get("transaction_id", "")).startswith("RSV")
+        ]
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
 
         # -----------------------------
-        # CURRENT YEAR VALUES
+        # CURRENT DAY VALUES
         # -----------------------------
         total_revenue = 0
         total_net = 0
@@ -1437,7 +1455,7 @@ def get_mainland_transaction_kpis_data():
         active_customers = 0
 
         # -----------------------------
-        # LAST YEAR VALUES
+        # YESTERDAY VALUES
         # -----------------------------
         last_total_revenue = 0
         last_total_net = 0
@@ -1474,7 +1492,7 @@ def get_mainland_transaction_kpis_data():
             if not dt:
                 continue
 
-            year = dt.year
+            transaction_day = dt.date()
 
             amount_paid = float(t.get("total_amount_paid") or 0) - float(t.get("total_change") or 0)
             amount_net = float(t.get("total_net_billing") or 0)
@@ -1503,8 +1521,10 @@ def get_mainland_transaction_kpis_data():
 
             pax = get_pax(t)
 
-
-            if year == current_year:
+            # -----------------------------
+            # TODAY
+            # -----------------------------
+            if transaction_day == today:
                 total_revenue += amount_paid
                 total_net += amount_net
 
@@ -1515,9 +1535,9 @@ def get_mainland_transaction_kpis_data():
                     active_customers += pax
 
             # -----------------------------
-            # LAST YEAR
+            # YESTERDAY
             # -----------------------------
-            elif year == last_year:
+            elif transaction_day == yesterday:
                 last_total_revenue += amount_paid
                 last_total_net += amount_net
 
@@ -1660,23 +1680,22 @@ def get_mainland_weekly_data():
         "labels": days_order,
         "data": [weekly_totals[day] for day in days_order]
     }
-
 def get_floatingbar_transaction_kpis_data():
     try:
         transactions = GLOBAL_DATA["floating_transactions"]
 
-        current_year = datetime.now().year
-        last_year = current_year - 1
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
 
         # -----------------------------
-        # CURRENT YEAR
+        # TODAY
         # -----------------------------
         total_revenue = 0
         cancelled_count = 0
         active_customers = 0
 
         # -----------------------------
-        # LAST YEAR
+        # YESTERDAY
         # -----------------------------
         last_total_revenue = 0
         last_cancelled_count = 0
@@ -1734,20 +1753,17 @@ def get_floatingbar_transaction_kpis_data():
             if not dt:
                 continue
 
-            year = dt.year
+            transaction_day = dt.date()
 
             amount = float(t.get("total_net_billing") or 0)
             status = (t.get("status") or "").lower()
 
             pax = get_pax(t)
 
-            # DEBUG
-
-
             # -----------------------------
-            # CURRENT YEAR
+            # TODAY
             # -----------------------------
-            if year == current_year:
+            if transaction_day == today:
                 total_revenue += amount
 
                 if status == "cancelled":
@@ -1757,9 +1773,9 @@ def get_floatingbar_transaction_kpis_data():
                     active_customers += pax
 
             # -----------------------------
-            # LAST YEAR
+            # YESTERDAY
             # -----------------------------
-            elif year == last_year:
+            elif transaction_day == yesterday:
                 last_total_revenue += amount
 
                 if status == "cancelled":
@@ -1930,8 +1946,16 @@ def get_shared_menu_sales_data():
 
         # response_transactions = requests.get(FLOATING_API_URL_TRANSACTION)
         # transactions = response_transactions.json()
-        transactions = GLOBAL_DATA["floating_transactions"]
+        today = datetime.now().date()
 
+        transactions = [
+            t for t in GLOBAL_DATA["floating_transactions"]
+            if (
+                t.get("created_at") and
+                parse_date(t.get("created_at")) and
+                parse_date(t.get("created_at")).date() == today
+            )
+        ]
 
         menu_map = {}
 
@@ -2041,7 +2065,7 @@ def get_shared_menu_sales_data():
 
 def get_shared_reservation_data():
     try:
-        transactions = get_transaction_reserved()
+        transactions = GLOBAL_DATA["mainland_transactions"]
 
         reserved = 0
         awaiting = 0
@@ -2049,7 +2073,8 @@ def get_shared_reservation_data():
 
     
         for t in transactions:
-            reserved += 1 
+            if str(t.get("transaction_id", "")).startswith("RSV"):
+                reserved += 1
 
             status = (t.get("status") or "").lower()
 
@@ -2307,10 +2332,16 @@ def get_kpis_sales_data_overview():
     try:
 
         #babalikan
-        mainland_transactions = GLOBAL_DATA.get("mainland_transactions", [])
+        mainland_transactions = [
+            t for t in GLOBAL_DATA.get("mainland_transactions", [])
+            if not str(t.get("transaction_id", "")).startswith("RSV")
+        ]
 
         # response = requests.get(FLOATING_API_URL_TRANSACTION)
-        floating_transactions = GLOBAL_DATA.get("floating_transactions", [])
+        floating_transactions = [
+            t for t in GLOBAL_DATA.get("floating_transactions", [])
+            if (t.get("mode_of_payment") or "").lower() != "free of charge"
+        ]
 
         all_transactions = mainland_transactions + floating_transactions
 
@@ -3324,8 +3355,15 @@ def get_distribution_data(view="month", start=None, end=None):
 # KPI DATA
 # ----------------------------
 def get_kpis_base_revenue_data(view="month", start=None, end=None):
-    mainland_transactions = GLOBAL_DATA.get("mainland_transactions", [])
-    floating_transactions = GLOBAL_DATA.get("floating_transactions", [])
+    mainland_transactions = [
+        t for t in GLOBAL_DATA.get("mainland_transactions", [])
+        if not str(t.get("transaction_id", "")).startswith("RSV")
+    ]
+
+    floating_transactions = [
+        t for t in GLOBAL_DATA.get("floating_transactions", [])
+        if (t.get("mode_of_payment") or "").lower() != "free of charge"
+    ]
 
     now = datetime.now()
 
@@ -5220,7 +5258,10 @@ def get_monthly_food_beverages_kpis():
         menu  = GLOBAL_DATA.get("menu", [])
 
         # response_transaction = requests.get(FLOATING_API_URL_TRANSACTION)
-        transactions = GLOBAL_DATA.get("floating_transactions", [])
+        transactions = [
+            t for t in GLOBAL_DATA.get("floating_transactions", [])
+            if (t.get("mode_of_payment") or "").lower() != "free of charge"
+        ]
 
         current_month = datetime.now().month
         current_year = datetime.now().year

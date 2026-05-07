@@ -6,6 +6,10 @@
     <title>Sales Monitoring - Blue Ocean Bar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='flatpickr.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <style>
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
@@ -374,6 +378,7 @@
         </div>
     </div>
 
+<input type="text" id="export-calendar" class="opacity-0 absolute pointer-events-none">
     <script src="/static/js/sidebar.js"></script>
     <script>
         // Modal Logic Function
@@ -533,18 +538,87 @@ document.getElementById("income_revenue").addEventListener("click", function () 
     window.location.href = "/income-statement-export";
 });
 
+
 document.getElementById("btn_pdf").addEventListener("click", function () {
-    window.location.href = "/export-dashboard-pdf";
+
+    exportPicker.set("onChange", function (selectedDates) {
+
+        if (selectedDates.length !== 2) return;
+
+        const start = formatDate(selectedDates[0]);
+        const end = formatDate(selectedDates[1]);
+
+        const params = new URLSearchParams();
+        params.append("start_date", start);
+        params.append("end_date", end);
+
+        window.location.href = "/export-dashboard-pdf?" + params.toString();
+    });
+
+    exportPicker.open();
 });
 
 document.getElementById("btn_excel").addEventListener("click", function () {
-    window.location.href = "/export-dashboard-excel";
-});
 
+    exportPicker.set("onChange", function (selectedDates) {
+
+        if (selectedDates.length !== 2) return;
+
+        const start = formatDate(selectedDates[0]);
+        const end = formatDate(selectedDates[1]);
+
+        const params = new URLSearchParams();
+        params.append("start_date", start);
+        params.append("end_date", end);
+
+        window.location.href = "/export-dashboard-excel?" + params.toString();
+    });
+
+    exportPicker.open();
+});
 
 document.getElementById("btn_csv").addEventListener("click", function () {
-    window.location.href = "/export-dashboard-csv";
+
+    exportPicker.set("onChange", function (selectedDates) {
+
+        if (selectedDates.length !== 2) return;
+
+        const start = formatDate(selectedDates[0]);
+        const end = formatDate(selectedDates[1]);
+
+        const params = new URLSearchParams();
+        params.append("start_date", start);
+        params.append("end_date", end);
+
+        window.location.href = "/export-dashboard-csv?" + params.toString();
+    });
+
+    exportPicker.open();
 });
+
+
+const exportPicker = flatpickr("#export-calendar", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+
+    onOpen: function (_, __, instance) {
+        // force re-center after Flatpickr overrides position
+        setTimeout(() => {
+            instance.calendarContainer.style.position = "fixed";
+            instance.calendarContainer.style.top = "50%";
+            instance.calendarContainer.style.left = "50%";
+            instance.calendarContainer.style.transform = "translate(-50%, -50%)";
+            instance.calendarContainer.style.zIndex = "99999";
+        }, 0);
+    }
+});
+
+function formatDate(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
     </script>
 </body>
 </html>

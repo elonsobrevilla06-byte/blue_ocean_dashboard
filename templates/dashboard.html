@@ -811,10 +811,9 @@ document.getElementById("balance_sheet").addEventListener("click", function () {
 document.getElementById("income_revenue").addEventListener("click", function () {
     window.location.href = "/income-statement-export";
 });
-
 document.getElementById("btn_pdf").addEventListener("click", function () {
 
-    exportPicker.set("onClose", function (selectedDates) {
+    exportPicker.set("onChange", function (selectedDates) {
 
         if (selectedDates.length !== 2) return;
 
@@ -833,7 +832,7 @@ document.getElementById("btn_pdf").addEventListener("click", function () {
 
 document.getElementById("btn_excel").addEventListener("click", function () {
 
-    exportPicker.set("onClose", function (selectedDates) {
+    exportPicker.set("onChange", function (selectedDates) {
 
         if (selectedDates.length !== 2) return;
 
@@ -849,9 +848,10 @@ document.getElementById("btn_excel").addEventListener("click", function () {
 
     exportPicker.open();
 });
+
 document.getElementById("btn_csv").addEventListener("click", function () {
 
-    exportPicker.set("onClose", function (selectedDates) {
+    exportPicker.set("onChange", function (selectedDates) {
 
         if (selectedDates.length !== 2) return;
 
@@ -867,7 +867,6 @@ document.getElementById("btn_csv").addEventListener("click", function () {
 
     exportPicker.open();
 });
-
 const exportPicker = flatpickr("#export-calendar", {
     mode: "range",
     dateFormat: "Y-m-d",

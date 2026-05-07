@@ -9,3 +9,13 @@
 .flatpickr-calendar.open {
     box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
 }
+
+
+
+#fp-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45); /* darker = more visible */
+    z-index: 99990;
+    display: none;
+}
