@@ -1679,6 +1679,8 @@ def get_floatingbar_transaction_kpis_data():
     try:
         transactions = GLOBAL_DATA["floating_transactions"]
 
+        # print("transactions: ", transactions)
+
         today = datetime.now().date()
         yesterday = today - timedelta(days=1)
 
